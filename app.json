@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "TruSphere",
+    "slug": "trusphere",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/branding/app-logo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/branding/splash-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#07111F"
+    },
+    "ios": {
+      "bundleIdentifier": "com.trusphere.chat",
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/branding/app-logo.png",
+        "backgroundColor": "#07111F"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.trusphere.chat",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "notification": {
+      "icon": "./assets/branding/app-logo.png",
+      "color": "#2563EB"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TruSphere needs access to your photos so you can choose a profile picture."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "TruSphere needs microphone access to send voice messages."
+        }
+      ],
+      "expo-notifications",
+      "expo-font",
+      "expo-asset"
+    ],
+    "web": {
+      "favicon": "./assets/branding/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1dacabdf-1357-452e-827a-d871deda7282"
+      }
+    },
+    "owner": "abhi_app_development"
+  }
+}
