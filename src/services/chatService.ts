@@ -10,7 +10,14 @@ import {
   
 } from "firebase/database";
 
+import {
+  getCurrentChat,
+  getUserFcmToken,
+  getUserProfile,
+} from "./userService"; "./userService";
 
+
+import { sendPushNotification } from "./notificationService";
 import { database } from "./firebase";
 import { MessageStatus } from "../types/chat";
 import { isBlocked } from "./userService";
@@ -107,6 +114,57 @@ if (message.type === "text") {
     timestamp: message.timestamp,
   });
 }
+
+try {
+  const currentChat =
+  await getCurrentChat(message.receiver);
+
+const token =
+  await getUserFcmToken(message.receiver);
+
+if (
+  token &&
+  currentChat !== chatId
+) {
+  const senderProfile =
+    await getUserProfile(message.sender);
+
+  const senderName =
+    senderProfile?.name || "New Message";
+
+  let body = "";
+
+  switch (message.type) {
+    case "text":
+      body = message.text || "";
+      break;
+
+    case "image":
+      body = "📷 Photo";
+      break;
+
+    case "voice":
+      body = "🎤 Voice Message";
+      break;
+
+    default:
+      body = "New Message";
+  }
+
+  await sendPushNotification(
+    token,
+    senderName,
+    body,
+    {
+      chatId,
+      senderId: message.sender,
+    }
+  );
+}
+} catch (e) {
+  console.log("Push Notification Error =>", e);
+}
+
 console.log("Firebase write success");
 
 return newRef.key;
@@ -937,4 +995,24 @@ export async function updateLastReaction(
       lastReaction: reaction,
     }
   );
+}
+
+import { onDisconnect } from "firebase/database";
+
+export async function setCurrentChat(
+  uid: string,
+  chatId: string | null
+) {
+  const chatRef = ref(
+    database,
+    `presence/${uid}/currentChat`
+  );
+
+  if (chatId) {
+    await set(chatRef, chatId);
+
+    onDisconnect(chatRef).remove();
+  } else {
+    await remove(chatRef);
+  }
 }

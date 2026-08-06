@@ -1,5 +1,5 @@
 import { AppState, AppStateStatus } from "react-native";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, User } from "@react-native-firebase/auth";
 
 import { auth } from "./firebase";
 
@@ -18,16 +18,23 @@ let appStateSubscription: { remove: () => void } | null = null;
 
 export function startAppServices() {
   onAuthStateChanged(auth, async (user) => {
+
+     console.log("AUTH OBJECT =>", user);
     currentUser = user;
+
+    
 
     if (!user) {
       stopMessageSync();
       return;
     }
 
+     console.log("UID =>", user.uid);
+
     console.log("AUTH RESTORED =>", user.uid);
 
     await setUserOnline(user.uid);
+
 
     startMessageSync(user.uid);
 
@@ -59,3 +66,11 @@ export function stopAppServices() {
 
   appStateSubscription?.remove();
 }
+
+// temp code
+
+onAuthStateChanged(auth, (user) => {
+  console.log("========== AUTH CALLBACK ==========");
+  console.log("USER =>", user);
+  console.log("CURRENT =>", auth.currentUser);
+});

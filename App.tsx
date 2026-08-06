@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import AppNavigator from "./src/navigation/AppNavigator";
 
 import { AppState } from "react-native";
-
+import { auth } from "./src/services/firebase";
 
 import { getCurrentUser } from "./src/services/authService";
 import { updateSession } from "./src/services/sessionService";
@@ -18,6 +18,9 @@ import {
   stopAppServices,
 } from "./src/services/appService";
 
+console.log("APP START");
+console.log("CURRENT USER IMMEDIATELY =>", auth.currentUser);
+
 export default function App() {
   useEffect(() => {
     startAppServices();
@@ -26,32 +29,33 @@ export default function App() {
       stopAppServices();
     };
   }, []);
-
+  
   useEffect(() => {
-
-  const subscription =
+    
+    const subscription =
     AppState.addEventListener(
       "change",
       async (state) => {
-
+        
         if (state !== "active") return;
-
+        
         const user =
-          getCurrentUser();
-
+        getCurrentUser();
+        
         if (!user) return;
-
+        
         await updateSession(
           user.uid
         );
 
       }
     );
-
-  return () => subscription.remove();
-
-}, []);
-
+    
+    return () => subscription.remove();
+    
+  }, []);
+  
+  
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider>
@@ -62,3 +66,4 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+  

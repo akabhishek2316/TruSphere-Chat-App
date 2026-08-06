@@ -9,6 +9,10 @@ import {
     Image,
     TextInput,
 } from "react-native";
+
+
+import { auth } from "../services/firebase";
+import { ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
     subscribeUsers,
@@ -56,12 +60,19 @@ import {
     subscribeHiddenChats,
 } from "../services/chatService";
 
+import { registerForPushNotifications } from "../services/notificationService";
+import { savePushToken } from "../services/userService";
+
+console.log("AUTH SAME =>", auth);
+
 export default function ChatListScreen() {
 
 
     const navigation = useNavigation<any>();
     const currentUser = getCurrentUser();
-
+    
+    
+const [authReady, setAuthReady] = useState(false);
 
     const [chats, setChats] = useState<any[]>([]);
     const [myProfile, setMyProfile] = useState<any>(null);
@@ -79,6 +90,34 @@ export default function ChatListScreen() {
   React.useState(".");
 
 
+  
+
+    useEffect(() => {
+  console.log("INIT NOTIFICATION");
+
+  async function initNotifications() {
+    console.log("STEP 1");
+
+    const user = getCurrentUser();
+    console.log("USER =>", user?.uid);
+    console.log("Current User =>", user?.uid);
+
+
+
+    if (!user) return;
+
+    const token = await registerForPushNotifications();
+
+    console.log("TOKEN =>", token);
+
+    if (token) {
+      await savePushToken(user.uid, token);
+      console.log("TOKEN SAVED");
+    }
+  }
+
+  initNotifications();
+}, []);
 
     useEffect(() => {
         const backAction = () => {
@@ -166,21 +205,35 @@ export default function ChatListScreen() {
     }, []);
 
 
+
+
     useEffect(() => {
-        const loadProfile = async () => {
-            const me = getCurrentUser()?.uid;
+    console.log(
+        "PROFILE EFFECT USER =>",
+        getCurrentUser()?.uid
+    );
 
-            if (!me) return;
+    const loadProfile = async () => {
+        const me = getCurrentUser()?.uid;
+
+        console.log("LOAD PROFILE UID =>", me);
+
+        if (!me) {
+            console.log("PROFILE NOT LOADED");
+            return;
+        }
+
+        const profile = await getUserProfile(me);
+
+        console.log("PROFILE =>", profile);
+
+        setMyProfile(profile);
+    };
+
+    loadProfile();
+}, []);
 
 
-
-            const profile = await getUserProfile(me);
-
-            setMyProfile(profile);
-        };
-
-        loadProfile();
-    }, []);
 
     useEffect(() => {
 
@@ -190,6 +243,7 @@ export default function ChatListScreen() {
 
     }, []);
 
+ 
     useEffect(() => {
 
         const subscription =
@@ -529,6 +583,23 @@ React.useEffect(() => {
 
   return () => clearInterval(interval);
 }, []);
+
+// if (!authReady) {
+//   return (
+//     <SafeAreaView
+//       style={{
+//         flex: 1,
+//         justifyContent: "center",
+//         alignItems: "center",
+//       }}
+//     >
+//       <ActivityIndicator
+//         size="large"
+//         color="#2563EB"
+//       />
+//     </SafeAreaView>
+//   );
+// }
 
     return (
         <SafeAreaView style={styles.container}>

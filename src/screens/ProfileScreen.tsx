@@ -190,6 +190,7 @@ Name
 
       <TextInput
         value={name}
+        placeholderTextColor="#94A3B9"
         onChangeText={setName}
         style={styles.input}
         placeholder="Enter Name"
@@ -213,6 +214,7 @@ About
 
       <TextInput
     value={about}
+    placeholderTextColor="#94A3B9"
     onChangeText={setAbout}
     multiline
     maxLength={120}

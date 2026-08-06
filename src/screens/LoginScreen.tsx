@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { registerForPushNotifications } from "../services/notificationService";
+import { saveFcmToken } from "../services/userService";
 import {
   View,
   Text,
@@ -25,7 +26,7 @@ import { startMessageSync } from "../services/messageSyncService";
 import { getCurrentUser } from "../services/authService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { login } from "../services/authService";
-import { signOut } from "firebase/auth";
+import { signOut } from "@react-native-firebase/auth";
 import { auth } from "../services/firebase";
 import { getDeviceId } from "../services/deviceService";
 
@@ -116,6 +117,17 @@ await AsyncStorage.setItem(
    sessionId
 );
 
+const fcmToken =
+  await registerForPushNotifications();
+
+if (fcmToken) {
+  await saveFcmToken(
+    user.uid,
+    fcmToken
+  );
+}
+
+
 navigation.replace("ChatList");
 
   } catch (e: any) {
@@ -173,6 +185,7 @@ navigation.replace("ChatList");
 
       <TextInput
         placeholder="Email"
+        placeholderTextColor="#94A3B9"
         style={styles.input}
         value={email}
         onChangeText={setEmail}
@@ -185,6 +198,7 @@ navigation.replace("ChatList");
 
       <TextInput
         placeholder="Password"
+        placeholderTextColor="#94A3B8"
         style={styles.input}
         value={password}
         onChangeText={setPassword}
@@ -287,6 +301,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    color: "#111827",
   },
 
   button: {

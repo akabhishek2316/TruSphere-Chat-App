@@ -1,28 +1,18 @@
 import { useEffect } from "react";
 import {
   View,
-  Text,
   ActivityIndicator,
   Image,
   StyleSheet,
 } from "react-native";
 
+import { onAuthStateChanged } from "../services/authService";
+import { auth } from "../services/firebase";
+
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-
 import { RootStackParamList } from "../navigation/AppNavigator";
-
 import { Colors } from "../theme/colors";
 
-import { getCurrentUser } from "../services/authService";
-
-import { logout } from "../services/authService";
-
-import { getDeviceId } from "../services/deviceService";
-
-import {
-  getSession,
-  isSessionExpired,
-} from "../services/sessionService";
 
 type Props =
   NativeStackScreenProps<
@@ -33,63 +23,25 @@ type Props =
 export default function SplashScreen({
   navigation,
 }: Props) {
+
+  
+
   useEffect(() => {
-    const timer = setTimeout(async () => {
-  try {
-    const user = getCurrentUser();
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+    console.log("AUTH STATE =>", user?.uid);
 
-    if (!user) {
+    if (user) {
+      navigation.replace("ChatList");
+    } else {
       navigation.replace("Login");
-      return;
     }
+  });
 
-    const deviceId =
-      await getDeviceId();
+  return unsubscribe;
+}, []);
 
-    const session =
-      await getSession(user.uid);
+  
 
-    // Session deleted
-    if (!session) {
-      await logout();
-
-      navigation.replace("Login");
-      return;
-    }
-
-    // Session expired
-    if (
-      isSessionExpired(session)
-    ) {
-      await logout();
-
-      navigation.replace("Login");
-      return;
-    }
-
-    // Logged in another device
-    if (
-      session.deviceId !== deviceId
-    ) {
-      await logout();
-
-      navigation.replace("Login");
-      return;
-    }
-
-    navigation.replace("ChatList");
-
-  } catch (error) {
-
-    console.log(error);
-
-    navigation.replace("Login");
-
-  }
-},1500);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   return (
     <View
@@ -101,9 +53,9 @@ export default function SplashScreen({
       }}
     >
       <Image
-  source={require("../../assets/branding/splash-logo.png")}
-  style={styles.logo}
-/>
+        source={require("../../assets/branding/splash-logo.png")}
+        style={styles.logo}
+      />
 
       <ActivityIndicator
         size="large"
@@ -115,30 +67,10 @@ export default function SplashScreen({
 }
 
 const styles = StyleSheet.create({
-
   logo: {
-  width: 350,
-  height: 350,
-  resizeMode: "contain",
-  marginBottom: 50,
-},
-
-title: {
-  marginTop: 20,
-  fontSize: 38,
-  fontWeight: "900",
-  color: "#FFFFFF",
-  textAlign: "center",
-  letterSpacing: 1,
-},
-
-subtitle: {
-  marginTop: 10,
-  fontSize: 16,
-  fontWeight: "500",
-  color: "rgba(255,255,255,0.85)",
-  textAlign: "center",
-  letterSpacing: 0.8,
-},
-
-})
+    width: 350,
+    height: 350,
+    resizeMode: "contain",
+    marginBottom: 50,
+  },
+});

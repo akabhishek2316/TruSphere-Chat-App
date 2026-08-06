@@ -1,6 +1,8 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
+import * as Notifications from "expo-notifications";
+import { useEffect } from "react";
+import { useNavigationContainerRef } from "@react-navigation/native";
 import SplashScreen from "../screens/SplashScreen";
 
 import ChatScreen from "../screens/ChatScreen";
@@ -67,11 +69,39 @@ ProfilePhoto: {
 BlockedContacts:undefined;
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
+  
+  const Stack = createNativeStackNavigator<RootStackParamList>();
+  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+
+  
+  useEffect(() => {
+  const subscription =
+    Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        console.log(
+          "NOTIFICATION CLICKED =>",
+          response.notification.request.content.data
+        );
+
+        const data =
+          response.notification.request.content.data as any;
+
+        if (data?.chatId && data?.senderId) {
+          navigationRef.navigate("Chat", {
+            chatId: data.chatId,
+            otherUserId: data.senderId,
+          });
+        }
+      }
+    );
+
+  return () => subscription.remove();
+}, []);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
   initialRouteName="Splash"
   screenOptions={{ headerShown: false }}

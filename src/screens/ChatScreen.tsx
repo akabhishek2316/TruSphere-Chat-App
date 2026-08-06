@@ -9,6 +9,7 @@ import useChatScroll from "../hooks/useChatScroll";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { unblockUser } from "../services/userService";
+import { setCurrentChat } from "../services/chatService";
 import {
 
   removeReaction,
@@ -143,6 +144,18 @@ export default function ChatScreen() {
     chatId,
     currentUserId
   );
+
+  useEffect(() => {
+  const user = getCurrentUser();
+
+  if (!user) return;
+
+  setCurrentChat(user.uid, chatId);
+
+  return () => {
+    setCurrentChat(user.uid, null);
+  };
+}, [chatId]);
 
   const [deleteCutoff, setDeleteCutoff] =
     useState(0);

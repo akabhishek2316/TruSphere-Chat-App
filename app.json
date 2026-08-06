@@ -17,6 +17,7 @@
       "supportsTablet": true
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/app-logo.png",
         "backgroundColor": "#07111F"
@@ -50,7 +51,10 @@
       ],
       "expo-notifications",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-firebase/messaging"
     ],
     "web": {
       "favicon": "./assets/branding/favicon.png"

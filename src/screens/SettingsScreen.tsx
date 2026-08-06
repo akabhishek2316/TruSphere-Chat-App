@@ -390,6 +390,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       <View style={styles.passwordContainer}>
   <TextInput
     placeholder="Current Password"
+    placeholderTextColor="#94A3B9"
     secureTextEntry={!showCurrentPassword}
     value={currentPassword}
     onChangeText={setCurrentPassword}
@@ -419,6 +420,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
      <View style={styles.passwordContainer}>
   <TextInput
     placeholder="New Password"
+    placeholderTextColor="#94A3B9"
     secureTextEntry={!showNewPassword}
     value={newPassword}
     onChangeText={setNewPassword}
@@ -448,6 +450,7 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       <View style={styles.passwordContainer}>
   <TextInput
     placeholder="Confirm Password"
+    placeholderTextColor="#94A3B9"
     secureTextEntry={!showConfirmPassword}
     value={confirmPassword}
     onChangeText={setConfirmPassword}

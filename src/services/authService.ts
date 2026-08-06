@@ -5,9 +5,9 @@ import {
   updatePassword,
   EmailAuthProvider,
   reauthenticateWithCredential,
-  getAuth,
   sendPasswordResetEmail,
-} from "firebase/auth";
+  onAuthStateChanged,
+} from "@react-native-firebase/auth";
 
 
 import { deleteSession } from "./sessionService";
@@ -88,3 +88,5 @@ export async function logout() {
 export function getCurrentUser() {
   return auth.currentUser;
 }
+
+export { onAuthStateChanged };

@@ -10,7 +10,8 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-
+import { registerForPushNotifications } from "../services/notificationService";
+import { saveFcmToken } from "../services/userService";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -18,7 +19,7 @@ import { UserId } from "../types/chat";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { RootStackParamList } from "../navigation/AppNavigator";
-import { startMessageSync } from "../services/messageSyncService";
+
 import { register } from "../services/authService";
 import { getDeviceId } from "../services/deviceService";
 import { createSession } from "../services/sessionService";
@@ -233,6 +234,20 @@ await AsyncStorage.setItem(
    "SESSION_ID",
    sessionId
 );
+
+
+const fcmToken =
+  await registerForPushNotifications();
+
+if (fcmToken) {
+  await saveFcmToken(
+    result.user.uid,
+    fcmToken
+  );
+}
+
+
+
       Alert.alert(
         "Success",
         "Account Created Successfully",
@@ -297,6 +312,7 @@ await AsyncStorage.setItem(
 
       <TextInput
         placeholder="Full Name"
+        placeholderTextColor="#94A3B9"
         style={styles.input}
         value={name}
         onChangeText={setName}
@@ -309,6 +325,7 @@ await AsyncStorage.setItem(
 
         <TextInput
           placeholder="Username"
+          placeholderTextColor="#94A3B9"
           style={styles.usernameInput}
           value={username}
           onChangeText={(text) =>
@@ -409,6 +426,7 @@ await AsyncStorage.setItem(
 
       <TextInput
         placeholder="Email"
+        placeholderTextColor="#94A3B9"
         style={styles.input}
         value={email}
         onChangeText={setEmail}
@@ -421,6 +439,7 @@ await AsyncStorage.setItem(
 
       <TextInput
         placeholder="Password"
+        placeholderTextColor="#94A3B9"
         style={styles.input}
         value={password}
         onChangeText={setPassword}
@@ -503,6 +522,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    color: "#111827",
   },
 
   button: {
