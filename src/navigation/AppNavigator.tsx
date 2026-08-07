@@ -24,35 +24,36 @@ import PrivacyScreen from "../screens/PrivacyScreen";
 import ProfilePhotoScreen from "../screens/ProfilePhotoScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import BlockedContactsScreen from "../screens/BlockedContactsScreen";
+import { setPendingNotification } from "../services/notificationService";
 
 export type RootStackParamList = {
   Splash: undefined;
   Setup: undefined;
-  ImageViewer:{
-    image:string;
-};
+  ImageViewer: {
+    image: string;
+  };
   Calculator: undefined;
   Secret: undefined;
 
   ChatList: undefined;
 
   Chat: {
-  chatId: string;
-  otherUserId: UserId;
+    chatId: string;
+    otherUserId: UserId;
 
-  imageUri?: string;
-  caption?: string;
-};
+    imageUri?: string;
+    caption?: string;
+  };
 
-  ImagePreview:{
-    chatId:string;
-    otherUserId:string;
+  ImagePreview: {
+    chatId: string;
+    otherUserId: string;
 
-    imageUri:string;
+    imageUri: string;
 
-    caption?:string;
-}
-  
+    caption?: string;
+  }
+
   Profile: undefined;
   Settings: undefined;
   Privacy: undefined;
@@ -60,157 +61,180 @@ export type RootStackParamList = {
   About: undefined;
   NewChat: undefined;
   Login: undefined;
-Register: undefined;
-SearchUser: undefined;
-ForgotPassword: undefined;
-ProfilePhoto: {
+  Register: undefined;
+  SearchUser: undefined;
+  ForgotPassword: undefined;
+  ProfilePhoto: {
     photo: string;
-};
-BlockedContacts:undefined;
+  };
+  BlockedContacts: undefined;
 };
 
 
 export default function AppNavigator() {
-  
+
   const Stack = createNativeStackNavigator<RootStackParamList>();
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
 
-  
+
   useEffect(() => {
-  const subscription =
-    Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        console.log(
-          "NOTIFICATION CLICKED =>",
-          response.notification.request.content.data
-        );
 
-        const data =
-          response.notification.request.content.data as any;
+      async function checkInitialNotification() {
+    const response =
+      await Notifications.getLastNotificationResponseAsync();
 
-        if (data?.chatId && data?.senderId) {
-          navigationRef.navigate("Chat", {
-            chatId: data.chatId,
-            otherUserId: data.senderId,
-          });
+    if (!response) return;
+
+    const data =
+      response.notification.request.content.data as any;
+
+    console.log("INITIAL NOTIFICATION =>", data);
+
+    if (data?.chatId && data?.senderId) {
+
+      setPendingNotification({
+  chatId: data.chatId,
+  senderId: data.senderId,
+});
+    }
+  }
+
+  checkInitialNotification();
+
+    const subscription =
+      Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          console.log(
+            "NOTIFICATION CLICKED =>",
+            response.notification.request.content.data
+          );
+
+          const data =
+            response.notification.request.content.data as any;
+
+          if (data?.chatId && data?.senderId) {
+            navigationRef.navigate("Chat", {
+              chatId: data.chatId,
+              otherUserId: data.senderId,
+            });
+          }
         }
-      }
-    );
+      );
 
-  return () => subscription.remove();
-}, []);
+    return () => subscription.remove();
+  }, []);
 
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
-  initialRouteName="Splash"
-  screenOptions={{ headerShown: false }}
->
+        initialRouteName="Splash"
+        screenOptions={{ headerShown: false }}
+      >
 
-  <Stack.Screen
-    name="Splash"
-    component={SplashScreen}
-  />
+        <Stack.Screen
+          name="Splash"
+          component={SplashScreen}
+        />
 
-  
 
-  <Stack.Screen
-  name="SearchUser"
-  component={SearchUserScreen}
-/>
 
-  <Stack.Screen
-    name="Calculator"
-    component={CalculatorLockScreen}
-  />
+        <Stack.Screen
+          name="SearchUser"
+          component={SearchUserScreen}
+        />
 
-  <Stack.Screen
-  name="Login"
-  component={LoginScreen}
-/>
+        <Stack.Screen
+          name="Calculator"
+          component={CalculatorLockScreen}
+        />
 
-<Stack.Screen
-  name="Register"
-  component={RegisterScreen}
-/>
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+        />
 
-  <Stack.Screen
-    name="Secret"
-    component={SecretScreen}
-  />
+        <Stack.Screen
+          name="Register"
+          component={RegisterScreen}
+        />
 
-  
+        <Stack.Screen
+          name="Secret"
+          component={SecretScreen}
+        />
 
-  <Stack.Screen
-    name="ChatList"
-    component={ChatListScreen}
-  />
 
-  <Stack.Screen
-  name="NewChat"
-  component={NewChatScreen}
-/>
 
-  <Stack.Screen
-    name="Chat"
-    component={ChatScreen}
-  />
+        <Stack.Screen
+          name="ChatList"
+          component={ChatListScreen}
+        />
 
-  <Stack.Screen
-    name="Profile"
-    component={ProfileScreen}
-  />
+        <Stack.Screen
+          name="NewChat"
+          component={NewChatScreen}
+        />
 
-  <Stack.Screen
-    name="Settings"
-    component={SettingsScreen}
-  />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+        />
 
-  <Stack.Screen
-    name="ClearChat"
-    component={ClearChatScreen}
-  />
+        <Stack.Screen
+          name="Profile"
+          component={ProfileScreen}
+        />
 
-  <Stack.Screen
-    name="About"
-    component={AboutScreen}
-  />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+        />
 
-  <Stack.Screen
-    name="ImagePreview"
-    component={ImagePreviewScreen}
-/>
+        <Stack.Screen
+          name="ClearChat"
+          component={ClearChatScreen}
+        />
 
-<Stack.Screen
-  name="ImageViewer"
-  component={ImageViewerScreen}
-/>
+        <Stack.Screen
+          name="About"
+          component={AboutScreen}
+        />
 
-<Stack.Screen
-  name="Privacy"
-  component={PrivacyScreen}
-/>
+        <Stack.Screen
+          name="ImagePreview"
+          component={ImagePreviewScreen}
+        />
 
-<Stack.Screen
-  name="ProfilePhoto"
-  component={ProfilePhotoScreen}
-  options={{
-    headerShown: false,
-    animation: "fade",
-  }}
-/>
+        <Stack.Screen
+          name="ImageViewer"
+          component={ImageViewerScreen}
+        />
 
-<Stack.Screen
-  name="ForgotPassword"
-  component={ForgotPasswordScreen}
-/>
+        <Stack.Screen
+          name="Privacy"
+          component={PrivacyScreen}
+        />
 
-<Stack.Screen
-  name="BlockedContacts"
-  component={BlockedContactsScreen}
-/>
+        <Stack.Screen
+          name="ProfilePhoto"
+          component={ProfilePhotoScreen}
+          options={{
+            headerShown: false,
+            animation: "fade",
+          }}
+        />
 
-</Stack.Navigator>
+        <Stack.Screen
+          name="ForgotPassword"
+          component={ForgotPasswordScreen}
+        />
+
+        <Stack.Screen
+          name="BlockedContacts"
+          component={BlockedContactsScreen}
+        />
+
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }

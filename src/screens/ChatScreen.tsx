@@ -96,6 +96,9 @@ import { getCurrentUser } from "../services/authService";
 
 import { uploadVoice, uploadImage } from "../services/cloudinary";
 
+import {
+  setActiveChat,
+} from "../services/notificationService";
 
 
 
@@ -129,9 +132,6 @@ export default function ChatScreen() {
   } = route.params;
 
 
-  console.log("Route Params =>", route.params);
-  console.log("chatId =>", chatId);
-  console.log("otherUserId =>", otherUserId);
 
   const currentUserId =
     getCurrentUser()?.uid ?? "";
@@ -155,6 +155,17 @@ export default function ChatScreen() {
   return () => {
     setCurrentChat(user.uid, null);
   };
+}, [chatId]);
+
+useEffect(() => {
+
+  setActiveChat(chatId);
+
+
+  return () => {
+    setActiveChat(null);
+  };
+
 }, [chatId]);
 
   const [deleteCutoff, setDeleteCutoff] =
@@ -537,10 +548,6 @@ export default function ChatScreen() {
 
   };
 
-  console.log("CURRENT USER =>", currentUserId);
-  console.log("MESSAGES LENGTH =>", messages.length);
-  console.log("ALL LENGTH =>", allMessages.length);
-
   useEffect(() => {
     console.log("ALL MESSAGES =>", allMessages);
   }, [allMessages]);
@@ -645,12 +652,7 @@ export default function ChatScreen() {
 
           renderItem={({ item, index }) => {
 
-            console.log(
-              "RENDER ITEM",
-              item.id,
-              item.type,
-              item.deletedForEveryone
-            );
+          
             if (item.deletedFor?.[currentUserId]) {
               return null;
             }

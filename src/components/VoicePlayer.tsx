@@ -29,7 +29,7 @@ export default function VoicePlayer({
 
   const [playing, setPlaying] =
     useState(false);
-
+const [currentTime, setCurrentTime] = useState(0);
 
   async function togglePlay() {
     try {
@@ -56,31 +56,27 @@ export default function VoicePlayer({
 
       await newSound.playAsync();
 
-      newSound.setOnPlaybackStatusUpdate((status) => {
-
+   newSound.setOnPlaybackStatusUpdate((status) => {
   if (!status.isLoaded) return;
 
   if (status.durationMillis) {
-
     setProgress(
-      status.positionMillis /
-      status.durationMillis
+      status.positionMillis / status.durationMillis
     );
 
+    setCurrentTime(
+      Math.floor(status.positionMillis / 1000)
+    );
   }
 
   if (status.didJustFinish) {
-
     setPlaying(false);
-
     setProgress(0);
+    setCurrentTime(0);
 
     newSound.unloadAsync();
-
     setSound(null);
-
   }
-
 });
 
     } catch (e) {
@@ -121,21 +117,34 @@ export default function VoicePlayer({
 if (status === "failed") {
   return (
     <View style={styles.container}>
+
+      
       <Ionicons
+        name="mic"
+        size={24}
+        color="#EF4444"
+      />
+       
+
+   
+      <View style={styles.waveSection}>
+        <Waveform progress={0} />
+
+        <Text style={styles.duration}>
+          {`${String(Math.floor(duration / 60)).padStart(2, "0")}:${String(
+            duration % 60
+          ).padStart(2, "0")}`}
+        </Text>
+      </View>
+
+
+      {/* <Ionicons
         name="alert-circle"
         size={22}
         color="#EF4444"
       />
 
-      <Text
-        style={{
-          marginLeft: 10,
-          color: "#EF4444",
-          fontWeight: "600",
-        }}
-      >
-        Failed
-      </Text>
+      <Text>Failed</Text> */}
     </View>
   );
 }
@@ -150,44 +159,32 @@ const bars: number[] = [
 // const progress = playing ? 8 : -1;
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        onPress={togglePlay}
-      >
-        <Ionicons
-          name={
-            playing
-              ? "pause"
-              : "play"
-          }
-          size={26}
-          color={Colors.primary}
-        />
-      </TouchableOpacity>
+  <View style={styles.container}>
+    <TouchableOpacity onPress={togglePlay}>
+      <Ionicons
+        name={playing ? "pause" : "play"}
+        size={26}
+        color={Colors.primary}
+      />
+    </TouchableOpacity>
 
+    <View style={styles.waveSection}>
       <Waveform progress={progress} />
 
-
-
-<Text style={styles.time}>
+      <Text style={styles.duration}>
   {`${String(
-    Math.floor(duration / 60)
+    Math.floor((playing ? currentTime : duration) / 60)
   ).padStart(2, "0")}:${String(
-    duration % 60
+    (playing ? currentTime : duration) % 60
   ).padStart(2, "0")}`}
 </Text>
     </View>
-  );
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
-  container:{
-  flexDirection:"row",
-  alignItems:"center",
-  width:"100%",
-},
-
-
+ 
 
 bar:{
     width:3,
@@ -195,8 +192,28 @@ bar:{
     backgroundColor:"#CFCFCF",
 },
 
- 
+container: {
+  flexDirection: "row",
+  alignItems: "flex-start",
+  width: "100%",
+},
 
+waveSection: {
+  flex: 1,
+  marginLeft: 10,
+},
+
+duration: {
+  marginTop: 5,
+  marginLeft: 2,
+  fontSize: 11,
+  color: "#6B7280",
+},
+
+ failed:{
+ flexDirection:"column",
+ gap:5,
+ },
   time: {
     fontSize: 13,
     color: "#6B7280",

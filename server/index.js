@@ -41,27 +41,30 @@ app.post("/sendNotification", async (req, res) => {
     }
 
     const message = {
-      token,
 
-      notification: {
-        title,
-        body,
-      },
+ token,
 
-      data: data || {},
+ data:{
+  title:String(title),
+  body:String(body),
+  chatId:String(data?.chatId || ""),
+  messageId:String(data?.messageId || ""),
+  senderId:String(data?.senderId || ""),
+},
 
-      android: {
-        priority: "high",
-      },
+ android:{
+   priority:"high"
+ },
 
-      apns: {
-        payload: {
-          aps: {
-            sound: "default",
-          },
-        },
-      },
-    };
+ apns:{
+   payload:{
+     aps:{
+       sound:"default"
+     }
+   }
+ }
+
+};
 
     const response =
       await admin.messaging().send(message);

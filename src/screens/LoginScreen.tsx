@@ -54,6 +54,8 @@ export default function LoginScreen() {
 
   const [loading, setLoading] = useState(false);
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const handleLogin = async () => {
   if (!email.trim() || !password.trim()) {
     Alert.alert(
@@ -196,17 +198,34 @@ navigation.replace("ChatList");
   cursorColor="#2563EB"
       />
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#94A3B8"
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        underlineColorAndroid="transparent"
-  selectionColor="#2563EB"
-  cursorColor="#2563EB"
-      />
+      <View style={styles.passwordContainer}>
+  <TextInput
+    placeholder="Password"
+    placeholderTextColor="#94A3B8"
+    style={styles.passwordInput}
+    value={password}
+    onChangeText={setPassword}
+    secureTextEntry={!showPassword}
+    underlineColorAndroid="transparent"
+    selectionColor="#2563EB"
+    cursorColor="#2563EB"
+  />
+
+  <TouchableOpacity
+    activeOpacity={0.7}
+    onPress={() => setShowPassword(!showPassword)}
+  >
+    <Ionicons
+      name={
+        showPassword
+          ? "eye-off-outline"
+          : "eye-outline"
+      }
+      size={22}
+      color="#64748B"
+    />
+  </TouchableOpacity>
+</View>
 
   <TouchableOpacity
   onPress={() =>
@@ -303,6 +322,24 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     color: "#111827",
   },
+
+  passwordContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#fff",
+  height: 56,
+  borderRadius: 14,
+  paddingHorizontal: 18,
+  marginBottom: 16,
+  borderWidth: 1,
+  borderColor: "#E5E7EB",
+},
+
+passwordInput: {
+  flex: 1,
+  fontSize: 16,
+  color: "#111827",
+},
 
   button: {
     height: 56,

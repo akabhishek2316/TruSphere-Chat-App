@@ -10,6 +10,7 @@ import {
     TextInput,
 } from "react-native";
 
+import { onAuthStateChanged } from "../services/authService";
 
 import { auth } from "../services/firebase";
 import { ActivityIndicator } from "react-native";
@@ -61,18 +62,21 @@ import {
 } from "../services/chatService";
 
 import { registerForPushNotifications } from "../services/notificationService";
-import { savePushToken } from "../services/userService";
+import { saveFcmToken } from "../services/userService";
 
-console.log("AUTH SAME =>", auth);
+
 
 export default function ChatListScreen() {
 
 
     const navigation = useNavigation<any>();
-    const currentUser = getCurrentUser();
-    
-    
+    // const currentUser = getCurrentUser();
+    const [currentUser, setCurrentUser] = useState(auth.currentUser);
 const [authReady, setAuthReady] = useState(false);
+    
+
+
+    
 
     const [chats, setChats] = useState<any[]>([]);
     const [myProfile, setMyProfile] = useState<any>(null);
@@ -90,34 +94,40 @@ const [authReady, setAuthReady] = useState(false);
   React.useState(".");
 
 
-  
+  useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (user) => {
+   
 
-    useEffect(() => {
+    setCurrentUser(user);
+    setAuthReady(true);
+  });
+
+  return unsubscribe;
+}, []);
+
+
+  useEffect(() => {
   console.log("INIT NOTIFICATION");
 
   async function initNotifications() {
     console.log("STEP 1");
 
-    const user = getCurrentUser();
-    console.log("USER =>", user?.uid);
-    console.log("Current User =>", user?.uid);
+    if (!currentUser) return;
 
-
-
-    if (!user) return;
+    console.log("USER =>", currentUser.uid);
 
     const token = await registerForPushNotifications();
 
     console.log("TOKEN =>", token);
 
     if (token) {
-      await savePushToken(user.uid, token);
+      await saveFcmToken(currentUser.uid, token);
       console.log("TOKEN SAVED");
     }
   }
 
   initNotifications();
-}, []);
+}, [currentUser]);
 
     useEffect(() => {
         const backAction = () => {
@@ -148,7 +158,7 @@ const [authReady, setAuthReady] = useState(false);
             me,
             setHiddenChats
         );
-    }, []);
+    }, [currentUser]);
 
 
 
@@ -202,7 +212,7 @@ const [authReady, setAuthReady] = useState(false);
         };
 
         load();
-    }, []);
+    }, [currentUser]);
 
 
 
@@ -216,7 +226,7 @@ const [authReady, setAuthReady] = useState(false);
     const loadProfile = async () => {
         const me = getCurrentUser()?.uid;
 
-        console.log("LOAD PROFILE UID =>", me);
+       
 
         if (!me) {
             console.log("PROFILE NOT LOADED");
@@ -225,7 +235,7 @@ const [authReady, setAuthReady] = useState(false);
 
         const profile = await getUserProfile(me);
 
-        console.log("PROFILE =>", profile);
+        
 
         setMyProfile(profile);
     };
@@ -241,7 +251,7 @@ const [authReady, setAuthReady] = useState(false);
 
         updateSession(currentUser.uid);
 
-    }, []);
+    }, [currentUser]);
 
  
     useEffect(() => {
@@ -274,7 +284,7 @@ const [authReady, setAuthReady] = useState(false);
         return () =>
             subscription.remove();
 
-    }, []);
+    }, [currentUser]);
 
 
     useEffect(() => {
@@ -538,7 +548,7 @@ message.deletedForEveryone
             }
         };
 
-    }, []);
+    }, [currentUser]);
 
     useEffect(() => {
   const me = getCurrentUser()?.uid;
@@ -584,23 +594,22 @@ React.useEffect(() => {
   return () => clearInterval(interval);
 }, []);
 
-// if (!authReady) {
-//   return (
-//     <SafeAreaView
-//       style={{
-//         flex: 1,
-//         justifyContent: "center",
-//         alignItems: "center",
-//       }}
-//     >
-//       <ActivityIndicator
-//         size="large"
-//         color="#2563EB"
-//       />
-//     </SafeAreaView>
-//   );
-// }
-
+if (!authReady) {
+  return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <ActivityIndicator
+        size="large"
+        color="#2563EB"
+      />
+    </SafeAreaView>
+  );
+}
     return (
         <SafeAreaView style={styles.container}>
 

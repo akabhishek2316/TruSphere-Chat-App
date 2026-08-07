@@ -52,7 +52,7 @@ if (blocked) {
 );
 
     const newRef = push(messagesRef);
-
+    const messageId = newRef.key;
     console.log("New Key:", newRef.key);
 
 
@@ -122,6 +122,8 @@ try {
 const token =
   await getUserFcmToken(message.receiver);
 
+  console.log("Receiver Token =>", token);
+
 if (
   token &&
   currentChat !== chatId
@@ -156,9 +158,10 @@ if (
     senderName,
     body,
     {
-      chatId,
-      senderId: message.sender,
-    }
+ chatId,
+ messageId: newRef.key,
+ senderId: message.sender,
+}
   );
 }
 } catch (e) {
@@ -230,30 +233,76 @@ export function subscribeMessages(
       );
 
       callback(list);
+      console.log(
+ "MESSAGE STATUS FROM FIREBASE =>",
+ list.map(m => ({
+   id:m.id,
+   status:m.status
+ }))
+);
     }
   );
 
+  
+
   return unsubscribe;
 }
+
+// export async function markDelivered(
+//   chatId: string,
+//   messageId: string
+// ) {
+
+//   console.log("MARK DELIVERED FUNCTION");
+
+//   await update(
+//     ref(
+//       database,
+//       `chatRooms/${chatId}/messages/${messageId}`
+//     ),
+//     {
+//       status: "delivered",
+//     }
+//   );
+
+//   console.log("DATABASE UPDATED");
+// }
 
 export async function markDelivered(
   chatId: string,
   messageId: string
 ) {
 
-  console.log("MARK DELIVERED FUNCTION");
+console.log(
+  "MARK DELIVERED PATH",
+  chatId,
+  messageId
+);
 
-  await update(
-    ref(
-      database,
-      `chatRooms/${chatId}/messages/${messageId}`
-    ),
-    {
-      status: "delivered",
-    }
-  );
 
-  console.log("DATABASE UPDATED");
+const messageRef = ref(
+  database,
+  `chatRooms/${chatId}/messages/${messageId}`
+);
+
+
+await update(
+  messageRef,
+  {
+    status: "delivered",
+    deliveredAt: Date.now(),
+  }
+);
+
+
+const snap = await get(messageRef);
+
+
+console.log(
+  "AFTER UPDATE VALUE =>",
+  snap.val()
+);
+
 }
 
 export async function markRead(
@@ -440,24 +489,30 @@ export async function clearChatForEveryone(
 ) {
   const updates: Record<string, any> = {};
 
-  // Sirf current user ke bheje hue messages sabke liye delete
+  // 1-to-1 chat ka receiver nikal lo
+  const receiverId = messages.find(
+    (m) => m.sender !== currentUserId
+  )?.sender;
+
+  if (!receiverId) return;
+
   messages.forEach((msg) => {
+    // Sender ke liye poora chat clear
+    updates[
+      `chatRooms/${chatId}/messages/${msg.id}/deletedFor/${currentUserId}`
+    ] = true;
+
+    // Receiver ke liye sirf sender ke messages hide
     if (msg.sender === currentUserId) {
       updates[
-        `chatRooms/${chatId}/messages/${msg.id}`
-      ] = null;
+        `chatRooms/${chatId}/messages/${msg.id}/deletedFor/${receiverId}`
+      ] = true;
     }
   });
 
-  if (Object.keys(updates).length > 0) {
-    await update(ref(database), updates);
-  }
+  await update(ref(database), updates);
 
-  // Current user ke phone se poora chat hide/delete
-  // await deleteChat(
-  //   currentUserId,
-  //   chatId
-  // );
+  await cleanupDeletedMessages(chatId);
 }
 
 

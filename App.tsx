@@ -18,17 +18,30 @@ import {
   stopAppServices,
 } from "./src/services/appService";
 
-console.log("APP START");
-console.log("CURRENT USER IMMEDIATELY =>", auth.currentUser);
+import {
+ startForegroundNotificationListener,
+ stopForegroundNotificationListener
+} from "./src/services/notificationService";
+
 
 export default function App() {
+  
   useEffect(() => {
-    startAppServices();
 
-    return () => {
-      stopAppServices();
-    };
-  }, []);
+ startAppServices();
+
+ startForegroundNotificationListener();
+
+
+ return () => {
+
+   stopForegroundNotificationListener();
+
+   stopAppServices();
+
+ };
+
+}, []);
   
   useEffect(() => {
     

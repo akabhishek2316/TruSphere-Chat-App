@@ -63,6 +63,8 @@ export default function RegisterScreen() {
   const [usernameMessage, setUsernameMessage] =
     useState("");
 
+  const [showPassword, setShowPassword] = useState(false);
+
   const [suggestions, setSuggestions] =
     useState<string[]>([]);
 
@@ -437,18 +439,30 @@ if (fcmToken) {
   cursorColor="#2563EB"
       />
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#94A3B9"
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        underlineColorAndroid="transparent"
-  selectionColor="#2563EB"
-  cursorColor="#2563EB"
-  
-      />
+      <View style={styles.passwordContainer}>
+  <TextInput
+    placeholder="Password"
+    placeholderTextColor="#94A3B9"
+    style={styles.passwordInput}
+    value={password}
+    onChangeText={setPassword}
+    secureTextEntry={!showPassword}
+    underlineColorAndroid="transparent"
+    selectionColor="#2563EB"
+    cursorColor="#2563EB"
+  />
+
+  <TouchableOpacity
+    onPress={() => setShowPassword(!showPassword)}
+    activeOpacity={0.7}
+  >
+    <Ionicons
+      name={showPassword ? "eye-off-outline" : "eye-outline"}
+      size={22}
+      color="#64748B"
+    />
+  </TouchableOpacity>
+</View>
 
       <TouchableOpacity
         style={styles.button}
@@ -524,6 +538,24 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     color: "#111827",
   },
+
+  passwordContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#fff",
+  borderRadius: 14,
+  paddingHorizontal: 18,
+  height: 50,
+  marginBottom: 12,
+  borderWidth: 1,
+  borderColor: "#E5E7EB",
+},
+
+passwordInput: {
+  flex: 1,
+  fontSize: 16,
+  color: "#111827",
+},
 
   button: {
     backgroundColor: "#2563EB",

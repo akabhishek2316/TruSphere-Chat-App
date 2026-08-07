@@ -6,6 +6,11 @@ import {
   StyleSheet,
 } from "react-native";
 
+import {
+  getPendingNotification,
+  clearPendingNotification,
+} from "../services/notificationService";
+
 import { onAuthStateChanged } from "../services/authService";
 import { auth } from "../services/firebase";
 
@@ -31,10 +36,24 @@ export default function SplashScreen({
     console.log("AUTH STATE =>", user?.uid);
 
     if (user) {
-      navigation.replace("ChatList");
-    } else {
-      navigation.replace("Login");
-    }
+  const pending = getPendingNotification();
+
+  if (pending) {
+    clearPendingNotification();
+
+    navigation.replace("Chat", {
+      chatId: pending.chatId,
+      otherUserId: pending.senderId,
+    });
+
+    return;
+  }
+
+  navigation.replace("ChatList");
+} else {
+  navigation.replace("Login");
+}
+
   });
 
   return unsubscribe;

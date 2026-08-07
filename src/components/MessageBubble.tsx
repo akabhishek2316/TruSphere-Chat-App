@@ -61,12 +61,7 @@ export default function MessageBubble({
   selected = false,
 }: Props) {
 
-  console.log({
-    id: message.id,
-    type: message.type,
-    deletedForEveryone: message.deletedForEveryone,
-    text: message.text,
-  });
+ 
 
   const navigation = useNavigation<any>();
   const isMe = message.sender === currentUserId;
@@ -207,11 +202,6 @@ export default function MessageBubble({
 
   const renderTick = () => {
 
-    console.log(
-      "RENDER",
-      message.text,
-      message.status
-    );
     if (!isMe) return null;
 
     switch (message.status) {
@@ -287,10 +277,7 @@ export default function MessageBubble({
 
   // Delete for everyone
   if (message.deletedForEveryone) {
-    console.log(
-      "DELETED UI RETURN",
-      message.id
-    );
+    
     return (
       <View
         style={[
@@ -509,16 +496,21 @@ export default function MessageBubble({
           )}
 
           {message.type === "voice" && (
-            <View style={styles.voiceWrapper}>
-              <VoicePlayer
-                voiceUrl={message.voiceUrl!}
-                duration={message.duration!}
-                status={message.status}
-              />
-            </View>
-          )}
+  <View style={styles.voiceWrapper}>
+    <VoicePlayer
+      voiceUrl={message.voiceUrl!}
+      duration={message.duration!}
+      status={message.status}
+    />
+  </View>
+)}
 
-          {!shouldInlineFooter && (
+<View style={styles.footer}>
+  <Text style={styles.time}>{time}</Text>
+  {renderTick()}
+</View>
+
+         {!shouldInlineFooter && message.type !== "voice" && (
             <View style={styles.footer}>
               <Text style={styles.time}>
                 {time}
@@ -636,7 +628,7 @@ const styles = StyleSheet.create({
   },
 
   voiceWrapper: {
-    width: 210,
+    width: 200,
   },
 
   myBubble: {
@@ -768,5 +760,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
 
   },
+
+  voiceFooter: {
+  marginTop: 4,
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+},
+
+voiceDuration: {
+  fontSize: 11,
+  color: "#6B7280",
+},
 });
 
