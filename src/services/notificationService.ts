@@ -8,7 +8,7 @@ import {
   setBackgroundMessageHandler,
 } from "@react-native-firebase/messaging";
 
-
+import { markDelivered } from "./chatService";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -88,6 +88,13 @@ export async function sendPushNotification(
   data?: any
 ) {
   try {
+
+    console.log("========== PUSH START ==========");
+console.log("FCM TOKEN =>", fcmToken);
+console.log("TITLE =>", title);
+console.log("BODY =>", body);
+console.log("DATA =>", data);
+
     const response = await fetch(
       "https://trusphere-notification-server.onrender.com/sendNotification",
       {
@@ -108,15 +115,9 @@ export async function sendPushNotification(
 
     const result = await response.json();
 
-    console.log("PUSH RESPONSE =>", result);
-
-    console.log("Sending notification...");
-    console.log({
-      fcmToken,
-      title,
-      body,
-      data,
-    });
+    console.log("PUSH HTTP STATUS =>", response.status);
+console.log("PUSH SERVER RESULT =>", result);
+console.log("========== PUSH END ==========");
 
     return result.success;
 
@@ -132,15 +133,66 @@ let unsubscribeMessage: (() => void) | null = null;
 setBackgroundMessageHandler(
   getMessaging(),
   async (remoteMessage) => {
-    console.log("BACKGROUND FCM MESSAGE =>", remoteMessage);
-
-    const title = String(
-      remoteMessage.data?.title ?? "New Message"
+    console.log("========== BACKGROUND FCM ==========");
+    console.log(
+      "BACKGROUND DATA =>",
+      remoteMessage.data
     );
 
-    const body = String(
-      remoteMessage.data?.body ?? ""
-    );
+    const chatId =
+      String(remoteMessage.data?.chatId ?? "");
+
+    const messageId =
+      String(remoteMessage.data?.messageId ?? "");
+
+    const title =
+      String(
+        remoteMessage.data?.title ??
+        "New Message"
+      );
+
+    const body =
+      String(
+        remoteMessage.data?.body ??
+        ""
+      );
+
+    // =====================================
+    // MARK MESSAGE AS DELIVERED
+    // =====================================
+
+    if (chatId && messageId) {
+      try {
+        console.log(
+          "BACKGROUND MARK DELIVERED =>",
+          chatId,
+          messageId
+        );
+
+        await markDelivered(
+          chatId,
+          messageId
+        );
+
+        console.log(
+          "BACKGROUND DELIVERED SUCCESS"
+        );
+
+      } catch (e) {
+        console.log(
+          "BACKGROUND DELIVERED ERROR =>",
+          e
+        );
+      }
+    } else {
+      console.log(
+        "MISSING chatId/messageId"
+      );
+    }
+
+    // =====================================
+    // SHOW LOCAL NOTIFICATION
+    // =====================================
 
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -151,9 +203,12 @@ setBackgroundMessageHandler(
       },
       trigger: null,
     });
+
+    console.log(
+      "BACKGROUND LOCAL NOTIFICATION SHOWN"
+    );
   }
 );
-
 
 export function startForegroundNotificationListener() {
 

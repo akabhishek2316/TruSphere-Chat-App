@@ -39,7 +39,9 @@ import { setTyping } from "../services/typingService";
 type Props = {
   currentUserId: UserId;
 
-  onSend?: (message: string) => void;
+  onSend?: (
+  message: string
+) => void | Promise<void>;
   onSendVoice?: (
    
     localUri: string,
@@ -70,8 +72,8 @@ export default function ChatInput({
   const inputRef = useRef<TextInput>(null);
   const emojiHeight = useSharedValue(0);
   const emojiOpacity = useSharedValue(0);
-
-
+  const [isSending, setIsSending] = useState(false);
+  
   const [recording, setRecording] = useState(false);
   const [voiceUri, setVoiceUri] =
     useState<string | null>(null);
@@ -92,6 +94,17 @@ export default function ChatInput({
     "💚", "💙", "💜", "🔥", "✨", "🎉",
     "💯", "😂", "😇", "😉", "😴", "🤝",
   ];
+
+
+  useEffect(() => {
+  if (!replyTo) return;
+
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 80);
+  });
+}, [replyTo]);
 
 
   const toggleEmojiPicker = () => {
@@ -203,18 +216,33 @@ export default function ChatInput({
     };
   }, [showEmojiPicker]);
 
+const handleSend = () => {
+  const text = message.trim();
 
-  const handleSend = () => {
-    const text = message.trim();
+  if (!text || isSending) {
+    return;
+  }
 
-    if (!text) return;
+  // 1. LOCK IMMEDIATELY
+  setIsSending(true);
 
-    onSend?.(text);
+  // 2. CLEAR INPUT IMMEDIATELY
+  setMessage("");
 
-    setMessage("");
+  // 3. Firebase/send operation AFTER UI update
+  Promise.resolve(onSend?.(text))
+    .catch((error) => {
+      console.log("SEND ERROR =>", error);
+    })
+    .finally(() => {
+      setIsSending(false);
 
-
-  };
+      // keyboard open hi rahe
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    });
+};
 
   const wave = useSharedValue(0.4);
 
@@ -367,48 +395,48 @@ export default function ChatInput({
 
               </View>
             ) : (
-              <TextInput
-                ref={inputRef}
-                placeholder="Type a message..."
-                placeholderTextColor="#94A3B8"
-                value={message}
-                onChangeText={setMessage}
-                multiline
-                onFocus={() => {
-                  if (showEmojiPicker) {
-                    emojiOpacity.value = withTiming(0, {
-                      duration: 120,
-                    });
+             <TextInput
+  ref={inputRef}
+  placeholder="Type a message..."
+  placeholderTextColor="#94A3B8"
+  value={message}
+  onChangeText={setMessage}
+  multiline
+  onFocus={() => {
+    if (showEmojiPicker) {
+      emojiOpacity.value = withTiming(0, {
+        duration: 120,
+      });
 
-                    emojiHeight.value = withTiming(
-                      0,
-                      {
-                        duration: 180,
-                      }
-                    );
+      emojiHeight.value = withTiming(0, {
+        duration: 180,
+      });
 
-                    setTimeout(() => {
-                      setShowEmojiPicker(false);
-                    }, 170);
-                  }
-                }}
-                editable={!recording}
-                autoCorrect={false}
-                spellCheck={false}
-                selectTextOnFocus={!recording}
-                style={styles.input}
-                textAlignVertical="center"
-                underlineColorAndroid="transparent"
-                selectionColor="#2563EB"
-                cursorColor="#2563EB"
-              />
+      setTimeout(() => {
+        setShowEmojiPicker(false);
+      }, 170);
+    }
+  }}
+  editable={!recording}
+  autoCorrect={false}
+  spellCheck={false}
+  style={styles.input}
+  textAlignVertical="center"
+  underlineColorAndroid="transparent"
+  selectionColor="#2563EB"
+  cursorColor="#2563EB"
+/>
             )}
 
             {message.trim() ? (
               <TouchableOpacity
-                style={styles.send}
-                onPress={handleSend}
-              >
+  style={[
+    styles.send,
+    isSending && { opacity: 0.6 },
+  ]}
+  onPress={handleSend}
+  disabled={isSending}
+>
                 <Ionicons
                   name="send"
                   size={18}

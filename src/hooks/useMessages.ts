@@ -1,12 +1,24 @@
-import { useEffect, useState } from "react";
-import { AppState, AppStateStatus } from "react-native";
-import { useIsFocused } from "@react-navigation/native";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-import { ChatMessage, UserId } from "../types/chat";
+import {
+  AppState,
+  AppStateStatus,
+} from "react-native";
+
+import {
+  useIsFocused,
+} from "@react-navigation/native";
+
+import {
+  ChatMessage,
+  UserId,
+} from "../types/chat";
 
 import {
   subscribeMessages,
-  markDelivered,
   markRead,
 } from "../services/chatService";
 
@@ -17,7 +29,8 @@ export default function useMessages(
   const [messages, setMessages] =
     useState<ChatMessage[]>([]);
 
-  const isFocused = useIsFocused();
+  const isFocused =
+    useIsFocused();
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -30,98 +43,107 @@ export default function useMessages(
         "change",
         (nextState) => {
           appState = nextState;
-
-          console.log(
-            "APP STATE =>",
-            nextState
-          );
         }
       );
 
-    const unsubscribe = subscribeMessages(
-      chatId,
-      async (list) => {
+    const unsubscribe =
+      subscribeMessages(
+        chatId,
+        (list) => {
 
-        console.log(
-          "MESSAGE STATUSS",
-          list.map((m) => ({
-            text: m.text,
-            status: m.status,
-          }))
-        );
+          /*
+           * --------------------------------
+           * FILTER ONLY
+           * --------------------------------
+           */
 
-        const visibleMessages = list
-          .filter((msg) => {
-            if (
-              msg.expiresAt &&
-              msg.expiresAt <= Date.now()
-            ) {
-              return false;
-            }
+          const now = Date.now();
 
-            if (
-              msg.sender !== currentUserId &&
-              (msg.type === "image" ||
-                msg.type === "voice") &&
-              !msg.uploadCompleted
-            ) {
-              return false;
-            }
+          const visibleMessages =
+            list.filter((msg) => {
 
-            return true;
-          })
-          .sort(
-            (a, b) =>
-              a.timestamp - b.timestamp
+              if (
+                msg.expiresAt &&
+                msg.expiresAt <= now
+              ) {
+                return false;
+              }
+
+              if (
+                msg.sender !==
+                  currentUserId &&
+                (
+                  msg.type === "image" ||
+                  msg.type === "voice"
+                ) &&
+                !msg.uploadCompleted
+              ) {
+                return false;
+              }
+
+              return true;
+            });
+
+          /*
+           * --------------------------------
+           * IMPORTANT
+           * No JSON.stringify comparison
+           * --------------------------------
+           */
+
+          setMessages(
+            visibleMessages
           );
 
-        setMessages((prev) => {
+          /*
+           * --------------------------------
+           * READ STATUS
+           * --------------------------------
+           */
+
           if (
-            prev.length ===
-              visibleMessages.length &&
-            JSON.stringify(prev) ===
-              JSON.stringify(visibleMessages)
+            appState !== "active" ||
+            !isFocused
           ) {
-            return prev;
+            return;
           }
 
-          return visibleMessages;
-        });
-
-        // READ ONLY WHEN:
-        // 1. App is active
-        // 2. ChatScreen is focused
-
-        if (
-          appState !== "active" ||
-          !isFocused
-        ) {
-          console.log(
-            "SKIP READ => App not active or ChatScreen not focused"
-          );
-
-          return;
-        }
-
-        for (const msg of list) {
+          const unreadMessages =
+            list.filter(
+              (msg) =>
+                msg.receiver ===
+                  currentUserId &&
+                msg.status ===
+                  "delivered"
+            );
 
           if (
-            msg.receiver === currentUserId &&
-            msg.status === "delivered"
+            unreadMessages.length === 0
           ) {
+            return;
+          }
+
+          /*
+           * Parallel Firebase updates
+           * instead of sequential await
+           */
+
+          Promise.all(
+            unreadMessages.map(
+              (msg) =>
+                markRead(
+                  chatId,
+                  msg.id
+                )
+            )
+          ).catch((error) => {
             console.log(
-              "MARKING READ =>",
-              msg.id
+              "MARK READ ERROR =>",
+              error
             );
-
-            await markRead(
-              chatId,
-              msg.id
-            );
-          }
+          });
         }
-      }
-    );
+      );
 
     return () => {
       unsubscribe();
@@ -133,5 +155,7 @@ export default function useMessages(
     isFocused,
   ]);
 
-  return { messages };
+  return {
+    messages,
+  };
 }

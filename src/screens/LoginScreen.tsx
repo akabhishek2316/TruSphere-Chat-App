@@ -33,8 +33,7 @@ import { getDeviceId } from "../services/deviceService";
 import {
   getSession,
   createSession,
-  getCurrentSessionId,
-  subscribeSession,
+  
   isSessionExpired,
 } from "../services/sessionService";
 

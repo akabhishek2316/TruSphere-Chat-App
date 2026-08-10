@@ -52,6 +52,7 @@ import {
   View,
   Text,
   BackHandler,
+  Keyboard,
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -180,6 +181,9 @@ export default function ChatScreen() {
     isUserScrolling,
   } = useChatScroll();
 
+
+  
+
   const scrollToMessage = (messageId: string) => {
     const index = allMessages.findIndex(
       m =>
@@ -201,6 +205,23 @@ export default function ChatScreen() {
       setHighlightedMessageId(null);
     }, 1800);
   };
+
+ useEffect(() => {
+  const keyboardShow = Keyboard.addListener(
+    Platform.OS === "ios"
+      ? "keyboardWillShow"
+      : "keyboardDidShow",
+    () => {
+      requestAnimationFrame(() => {
+        scrollToBottom(false);
+      });
+    }
+  );
+
+  return () => {
+    keyboardShow.remove();
+  };
+}, []);
 
   const [presence, setPresence] = useState({
     online: false,
@@ -557,10 +578,7 @@ export default function ChatScreen() {
 
 
 
-  useEffect(() => {
-    console.log("ALL MESSAGES =>", allMessages);
-  }, [allMessages]);
-
+  
 
 
   return (
@@ -649,13 +667,11 @@ export default function ChatScreen() {
           }}
           scrollEventThrottle={16}
 
-          onContentSizeChange={() => {
-            if (!shouldAutoScroll.current) return;
+         onContentSizeChange={() => {
+  if (!shouldAutoScroll.current) return;
 
-            setTimeout(() => {
-              scrollToBottom(false);
-            }, 50);
-          }}
+  scrollToBottom(false);
+}}
 
 
 
@@ -1019,11 +1035,14 @@ export default function ChatScreen() {
           visible={showOptions}
           onClose={closeMessageOptions}
 
-          onReply={() => {
-            if (selectedMessage) {
-              setReplyTo(selectedMessage);
-            }
-          }}
+         onReply={() => {
+  if (selectedMessage) {
+    setReplyTo(selectedMessage);
+  }
+
+  setShowOptions(false);
+  setSelectedMessage(null);
+}}
 
           isDeletedMessage={
             selectedMessage?.deletedForEveryone === true

@@ -2,6 +2,7 @@
   "expo": {
     "name": "TruSphere",
     "slug": "trusphere",
+     "scheme": "trusphere",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/branding/app-icon.png",
@@ -19,10 +20,9 @@
     "android": {
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-  "foregroundImage": "./assets/branding/app-icon-foreground.png",
-  "backgroundColor": "#07111F"
-},
-      
+        "foregroundImage": "./assets/branding/app-icon-foreground.png",
+        "backgroundColor": "#07111F"
+      },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.trusphere.chat",
@@ -47,19 +47,21 @@
           "microphonePermission": "TruSphere needs microphone access to send voice messages."
         }
       ],
+      
       [
-  "expo-notifications",
-  {
-    "icon": "./assets/branding/app-icon.png",
-    "color": "#2563EB",
-    "defaultChannel": "messages"
-  }
-],
+        "expo-notifications",
+        {
+          "icon": "./assets/branding/app-icon.png",
+          "color": "#2563EB",
+          "defaultChannel": "messages"
+        }
+      ],
       "expo-font",
       "expo-asset",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "@react-native-firebase/messaging"
+      "@react-native-firebase/messaging",
+      "expo-share-intent"
     ],
     "web": {
       "favicon": "./assets/branding/favicon.png"

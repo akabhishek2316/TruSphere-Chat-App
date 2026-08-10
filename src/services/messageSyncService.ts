@@ -28,13 +28,7 @@ export function startMessageSync(me: string) {
           console.log("CHAT:", chatId);
           console.log("TOTAL MESSAGES:", messages.length);
           for (const msg of messages) {
-            console.log(
-              "CHECK =>",
-              msg.text,
-              msg.receiver,
-              me,
-              msg.status
-            );
+           
 
             if (
               msg.receiver === me &&

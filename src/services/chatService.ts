@@ -7,8 +7,14 @@ import {
   update,
    get,
   remove,
+  onChildAdded,
+  onChildChanged,
+  onChildRemoved,
   
 } from "firebase/database";
+
+
+
 
 import {
   getCurrentChat,
@@ -196,6 +202,15 @@ async function sendMessageNotification(
       message.receiver
     );
 
+    console.log(
+  "========== RECEIVER TOKEN =========="
+);
+
+console.log(
+  "RECEIVER FCM TOKEN =>",
+  token
+);
+
   if (
     !token ||
     currentChat === chatId
@@ -274,6 +289,8 @@ export async function updateMessageStatus(
   );
 }
 
+
+
 export function subscribeMessages(
   chatId: string,
   callback: (messages: ChatMessage[]) => void
@@ -283,39 +300,87 @@ export function subscribeMessages(
     `chatRooms/${chatId}/messages`
   );
 
-  const unsubscribe = onValue(
-    messagesRef,
-    (snapshot) => {
-      const data = snapshot.val();
+  const messageMap = new Map<string, ChatMessage>();
 
-      if (!data) {
-        callback([]);
-        return;
-      }
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-      const list = Object.values(data) as ChatMessage[];
+  const emitMessages = () => {
+    if (flushTimer !== null) {
+      return;
+    }
 
-      list.sort(
-        (a, b) => a.timestamp - b.timestamp
+    flushTimer = setTimeout(() => {
+      flushTimer = null;
+
+      const list = Array.from(
+        messageMap.values()
+      ).sort(
+        (a, b) =>
+          a.timestamp - b.timestamp
       );
 
       callback(list);
-      console.log(
- "MESSAGE STATUS FROM FIREBASE =>",
- list.map(m => ({
-   id:m.id,
-   status:m.status
- }))
-);
+    }, 0);
+  };
+
+  const unsubscribeAdded = onChildAdded(
+    messagesRef,
+    (snapshot) => {
+      const data =
+        snapshot.val() as ChatMessage;
+
+      if (!data?.id) return;
+
+      messageMap.set(
+        snapshot.key!,
+        data
+      );
+
+      emitMessages();
     }
   );
 
-  
+  const unsubscribeChanged = onChildChanged(
+    messagesRef,
+    (snapshot) => {
+      const data =
+        snapshot.val() as ChatMessage;
 
-  return unsubscribe;
+      if (!data?.id) return;
+
+      messageMap.set(
+        snapshot.key!,
+        data
+      );
+
+      emitMessages();
+    }
+  );
+
+  const unsubscribeRemoved = onChildRemoved(
+    messagesRef,
+    (snapshot) => {
+      messageMap.delete(
+        snapshot.key!
+      );
+
+      emitMessages();
+    }
+  );
+
+  return () => {
+    unsubscribeAdded();
+    unsubscribeChanged();
+    unsubscribeRemoved();
+
+    if (flushTimer !== null) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+
+    messageMap.clear();
+  };
 }
-
-
 export async function markDelivered(
   chatId: string,
   messageId: string

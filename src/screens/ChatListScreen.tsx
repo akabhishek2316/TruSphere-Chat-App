@@ -597,22 +597,39 @@ export default function ChatListScreen() {
         return () => clearInterval(interval);
     }, []);
 
-    if (!authReady) {
-        return (
-            <SafeAreaView
-                style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                }}
-            >
-                <ActivityIndicator
-                    size="large"
-                    color="#2563EB"
-                />
-            </SafeAreaView>
-        );
-    }
+    // if (!authReady) {
+    //     return (
+    //         <SafeAreaView
+    //             style={{
+    //                 flex: 1,
+    //                 justifyContent: "center",
+    //                 alignItems: "center",
+    //             }}
+    //         >
+    //             <ActivityIndicator
+    //                 size="large"
+    //                 color="#2563EB"
+    //             />
+    //         </SafeAreaView>
+    //     );
+
+        
+    // }
+
+    const visibleChats = [...chats]
+    .filter(chat =>
+        chat.lastMessageObj ||
+        chat.lastMessage !== "" ||
+        chat.lastTimestamp !== 0
+    )
+    .filter(chat =>
+        !hiddenChats[chat.id]
+    );
+
+const hasChats = visibleChats.length > 0;
+
+
+
     return (
         <SafeAreaView style={styles.container}>
 
@@ -732,37 +749,52 @@ export default function ChatListScreen() {
 
 
 
-            <View style={styles.searchContainer}>
-                <Ionicons
-                    name="search-outline"
-                    size={21}
-                    color="#64748B"
-                />
+<View
+    style={[
+        styles.searchContainer,
+        !hasChats && styles.disabledSearchContainer,
+    ]}
+>
+    <Ionicons
+        name="search-outline"
+        size={21}
+        color={hasChats ? "#64748B" : "#CBD5E1"}
+    />
 
-                <TextInput
-                    placeholder="Search chats..."
-                    placeholderTextColor="#94A3B8"
-                    value={search}
-                    onChangeText={setSearch}
-                    style={styles.searchInput}
-                    underlineColorAndroid="transparent"
-                    selectionColor="#2563EB"
-                    cursorColor="#2563EB"
-                />
+    <TextInput
+        placeholder={
+            hasChats
+                ? "Search chats..."
+                : "Start a New Chat to search users"
+        }
+        placeholderTextColor={
+            hasChats ? "#94A3B8" : "#CBD5E1"
+        }
+        value={hasChats ? search : ""}
+        onChangeText={hasChats ? setSearch : undefined}
+        editable={hasChats}
+        style={[
+            styles.searchInput,
+            !hasChats && styles.disabledSearchInput,
+        ]}
+        underlineColorAndroid="transparent"
+        selectionColor="#2563EB"
+        cursorColor="#2563EB"
+    />
 
-                {search.length > 0 && (
-                    <TouchableOpacity
-                        onPress={() => setSearch("")}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons
-                            name="close-circle"
-                            size={20}
-                            color="#94A3B8"
-                        />
-                    </TouchableOpacity>
-                )}
-            </View>
+    {hasChats && search.length > 0 && (
+        <TouchableOpacity
+            onPress={() => setSearch("")}
+            activeOpacity={0.7}
+        >
+            <Ionicons
+                name="close-circle"
+                size={20}
+                color="#94A3B8"
+            />
+        </TouchableOpacity>
+    )}
+</View>
 
             <FlatList
                 contentContainerStyle={styles.listContent}
@@ -1065,59 +1097,83 @@ export default function ChatListScreen() {
 
 
 
-                ListEmptyComponent={
-                    search.length > 0 ? (
-                        <View style={styles.noResult}>
-                            <Ionicons
-                                name="search"
-                                size={55}
-                                color="#CBD5E1"
-                            />
+            ListEmptyComponent={
+    search.length > 0 ? (
+        <View style={styles.noResult}>
+            <Ionicons
+                name="search"
+                size={55}
+                color="#CBD5E1"
+            />
 
-                            <Text style={styles.noResultTitle}>
-                                No chats found
-                            </Text>
+            <Text style={styles.noResultTitle}>
+                No chats found
+            </Text>
 
-                            <Text style={styles.noResultText}>
-                                Try another name
-                            </Text>
-                        </View>
-                    ) : (
-                        <View style={styles.emptyContainer}>
-                            <Ionicons
-                                name="chatbubbles-outline"
-                                size={70}
-                                color="#CBD5E1"
-                            />
+            <Text style={styles.noResultText}>
+                Try another name
+            </Text>
+        </View>
+    ) : (
+        <View style={styles.emptyContainer}>
+            <Ionicons
+                name="chatbubbles-outline"
+                size={70}
+                color="#CBD5E1"
+            />
 
-                            <Text style={styles.emptyTitle}>
-                                No Chats Yet
-                            </Text>
+            <Text style={styles.emptyTitle}>
+                No Chats Yet
+            </Text>
 
-                            <Text style={styles.emptySubtitle}>
-                                Start a new conversation
-                            </Text>
-                        </View>
-                    )
+            <Text style={styles.emptySubtitle}>
+                Start a new conversation
+            </Text>
+
+            <Text style={styles.emptyHint}>
+                Tap the New Chat button below to find a user
+                and start chatting.
+            </Text>
+
+            <TouchableOpacity
+                style={styles.emptyNewChatButton}
+                activeOpacity={0.8}
+                onPress={() =>
+                    navigation.navigate("NewChat")
                 }
+            >
+                <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={16}
+                    color="#FFFFFF"
+                />
+
+                <Text style={styles.emptyNewChatText}>
+                    New Chat
+                </Text>
+            </TouchableOpacity>
+        </View>
+    )
+}
 
 
 
             />
 
 
-            <TouchableOpacity
-                activeOpacity={0.8}
-                style={styles.fab}
-                onPress={() => navigation.navigate("NewChat")}
-            >
-                <Ionicons
-                    name="chatbubble-ellipses"
-                    size={27}
-                    color="#fff"
-                />
-            </TouchableOpacity>
-
+           {hasChats && (
+    <TouchableOpacity
+        activeOpacity={0.8}
+        style={styles.fab}
+        onPress={() => navigation.navigate("NewChat")}
+    >
+        <Ionicons
+            name="chatbubble-ellipses"
+            size={27}
+            color="#fff"
+        />
+    </TouchableOpacity>
+)}
 
 
         </SafeAreaView >
@@ -1130,6 +1186,17 @@ const styles = StyleSheet.create({
         backgroundColor: "#F8FAFC",
 
     },
+
+    disabledSearchContainer: {
+    backgroundColor: "#F1F5F9",
+    borderColor: "#E2E8F0",
+    elevation: 0,
+    shadowOpacity: 0,
+},
+
+disabledSearchInput: {
+    color: "#CBD5E1",
+},
 
 
     header: {
@@ -1245,18 +1312,73 @@ const styles = StyleSheet.create({
 
         paddingVertical: 0,
     },
+emptyContainer: {
+    alignItems: "center",
 
-    emptyContainer: {
-        flex: 1,
+    marginTop: 90,
 
-        justifyContent: "center",
+    paddingHorizontal: 35,
+},
 
-        alignItems: "center",
+    emptyIconCircle: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
 
-        marginTop: 100,
+    backgroundColor: "#EFF6FF",
 
-        paddingHorizontal: 40,
+    justifyContent: "center",
+    alignItems: "center",
+
+    marginBottom: 4,
+},
+
+emptyNewChatButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+
+    marginTop: 22,
+
+    paddingHorizontal: 22,
+    height: 48,
+
+    borderRadius: 24,
+
+    backgroundColor: "#2563EB",
+
+    elevation: 4,
+
+    shadowColor: "#2563EB",
+    shadowOpacity: 0.20,
+    shadowRadius: 8,
+    shadowOffset: {
+        width: 0,
+        height: 4,
     },
+},
+
+emptyNewChatText: {
+    marginLeft: 8,
+
+    color: "#FFFFFF",
+
+    fontSize: 15,
+    fontWeight: "700",
+},
+
+emptyHint: {
+    marginTop: 8,
+
+    fontSize: 13,
+    lineHeight: 19,
+
+    color: "#94A3B8",
+
+    textAlign: "center",
+
+    maxWidth: 280,
+},
 
     emptyTitle: {
         fontSize: 22,

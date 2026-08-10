@@ -149,22 +149,28 @@ export default function MessageBubble({
 
         return (
           <Text
-            key={index}
-            style={{
-              color: "#2563EB",
-              textDecorationLine: "underline",
-            }}
-            onPress={() => Linking.openURL(url)}
-          >
-            {part}
-          </Text>
+  key={index}
+  selectable={false}
+  suppressHighlighting={true}
+  style={{
+    color: "#2563EB",
+    textDecorationLine: "underline",
+  }}
+  onPress={() => Linking.openURL(url)}
+>
+  {part}
+</Text>
         );
       }
 
       return (
-        <Text key={index}>
-          {part}
-        </Text>
+       <Text
+  key={index}
+  selectable={false}
+  suppressHighlighting={true}
+>
+  {part}
+</Text>
       );
     });
   };
@@ -329,9 +335,13 @@ export default function MessageBubble({
               style={{ marginRight: 5 }}
             />
 
-            <Text style={styles.deletedMessage}>
-              {deletedText}
-            </Text>
+          <Text
+  selectable={false}
+  suppressHighlighting={true}
+  style={styles.deletedMessage}
+>
+  {deletedText}
+</Text>
           </View>
 
           <View style={styles.footer}>
@@ -397,10 +407,12 @@ export default function MessageBubble({
                   : message.replyTo.senderName}
               </Text>
 
-              <Text
-                numberOfLines={1}
-                style={styles.replyMessage}
-              >
+             <Text
+  numberOfLines={1}
+  selectable={false}
+  suppressHighlighting={true}
+  style={styles.replyMessage}
+>
                 {message.replyTo.type === "text"
                   ? message.replyTo.text
                   : message.replyTo.type === "image"
@@ -415,18 +427,19 @@ export default function MessageBubble({
           {message.type === "text" && (
             shouldInlineFooter ? (
               <View style={styles.inlineRow}>
-                <Text
-                  selectable
-                  style={[
-                    styles.message,
-                    {
-                      maxWidth: "82%",
-                      marginRight: 8,
-                    },
-                  ]}
-                >
-                  {renderMessage(message.text)}
-                </Text>
+               <Text
+  selectable={false}
+  suppressHighlighting={true}
+  style={[
+    styles.message,
+    {
+      maxWidth: "82%",
+      marginRight: 8,
+    },
+  ]}
+>
+  {renderMessage(message.text)}
+</Text>
 
                 <View style={styles.inlineFooter}>
                   <Text style={styles.time}>{time}</Text>
@@ -434,12 +447,13 @@ export default function MessageBubble({
                 </View>
               </View>
             ) : (
-              <Text
-                selectable
-                style={styles.message}
-              >
-                {renderMessage(message.text)}
-              </Text>
+             <Text
+  selectable={false}
+  suppressHighlighting={true}
+  style={styles.message}
+>
+  {renderMessage(message.text)}
+</Text>
             )
           )}
 
@@ -468,9 +482,13 @@ export default function MessageBubble({
               />
 
               {!!message.caption && (
-                <Text style={styles.message}>
-                  {message.caption}
-                </Text>
+               <Text
+  selectable={false}
+  suppressHighlighting={true}
+  style={styles.message}
+>
+  {message.caption}
+</Text>
               )}
 
               {message.status === "failed" && isMe && (

@@ -4,7 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PaperProvider } from "react-native-paper";
 import { useEffect } from "react";
-
+import { useShareIntent } from "expo-share-intent";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { StatusBar } from "expo-status-bar";
 import { AppState } from "react-native";
@@ -26,6 +26,18 @@ import {
 
 
 export default function App() {
+
+  const {
+  hasShareIntent,
+  shareIntent,
+  resetShareIntent,
+  error,
+} = useShareIntent();
+
+console.log("========== SHARE HOOK ==========");
+console.log("HAS SHARE INTENT =>", hasShareIntent);
+console.log("SHARE INTENT =>", JSON.stringify(shareIntent));
+console.log("SHARE ERROR =>", JSON.stringify(error));
   
   useEffect(() => {
   setupNotificationChannel();
@@ -63,6 +75,27 @@ export default function App() {
     return () => subscription.remove();
     
   }, []);
+
+  useEffect(() => {
+  if (!shareIntent) return;
+
+  console.log(
+    "========== SHARE INTENT =========="
+  );
+  console.log(
+    "SHARED TEXT =>",
+    shareIntent.text
+  );
+  console.log(
+    "SHARED FILES =>",
+    shareIntent.files
+  );
+  console.log(
+    "SHARED WEB URL =>",
+    shareIntent.webUrl
+  );
+
+}, [shareIntent]);
   
   
   return (

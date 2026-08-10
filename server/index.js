@@ -18,6 +18,7 @@ serviceAccount.private_key =
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
 });
 
 app.get("/", (req, res) => {
@@ -43,13 +44,9 @@ app.post("/sendNotification", async (req, res) => {
   const message = {
   token,
 
-  notification: {
+  data: {
     title: String(title),
     body: String(body),
-  },
-
-  data: {
-    
     chatId: String(data?.chatId || ""),
     messageId: String(data?.messageId || ""),
     senderId: String(data?.senderId || ""),
@@ -57,31 +54,45 @@ app.post("/sendNotification", async (req, res) => {
 
   android: {
     priority: "high",
-    notification: {
-      channelId: "messages",
-      sound: "default",
-    },
   },
 
   apns: {
     payload: {
       aps: {
+        contentAvailable: true,
         sound: "default",
       },
     },
   },
 };
-
     const response =
-      await admin.messaging().send(message);
+  await admin.messaging().send(message);
 
-    console.log("Notification Sent =>", response);
+console.log("Notification Sent =>", response);
 
-    res.json({
-      success: true,
-      response,
+const chatId = String(data?.chatId || "");
+const messageId = String(data?.messageId || "");
+
+if (chatId && messageId) {
+  await admin
+    .database()
+    .ref(`chatRooms/${chatId}/messages/${messageId}`)
+    .update({
+      status: "delivered",
+      deliveredAt: Date.now(),
     });
 
+  console.log(
+    "MESSAGE DELIVERED =>",
+    chatId,
+    messageId
+  );
+}
+
+res.json({
+  success: true,
+  response,
+});
   } catch (e) {
 
     console.log(e);
@@ -174,3 +185,7 @@ app.listen(PORT, () => {
     `Server running on port ${PORT}`
   );
 });
+
+
+
+
