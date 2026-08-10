@@ -1,14 +1,8 @@
 import { ChatId, UserId } from "../chat";
 
-/**
- * Personal chat id
- * Same id for both users.
- */
 
+//Get other participant
 
-/**
- * Get other participant
- */
 export function getOtherUserId(
   currentUserId: UserId,
   participants: UserId[]
@@ -18,9 +12,9 @@ export function getOtherUserId(
   );
 }
 
-/**
- * Is current user's message?
- */
+
+//  Is current user's message?
+
 export function isMyMessage(
   sender: UserId,
   currentUserId: UserId

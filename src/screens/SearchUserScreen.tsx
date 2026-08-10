@@ -51,144 +51,144 @@ export default function SearchUserScreen() {
   return (
     <SafeAreaView style={styles.container}>
 
-    <View style={styles.header}>
+      <View style={styles.header}>
 
-  <TouchableOpacity
-    style={styles.backButton}
-    onPress={() => navigation.goBack()}
-  >
-    <Ionicons
-      name="arrow-back"
-      size={24}
-      color="#111827"
-    />
-  </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color="#111827"
+          />
+        </TouchableOpacity>
 
-  <View style={{ flex: 1 }}>
-    <Text style={styles.headerTitle}>
-      New Chat
-    </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>
+            New Chat
+          </Text>
 
-    <Text style={styles.contactCount}>
-      {filtered.length} Contacts
-    </Text>
-  </View>
+          <Text style={styles.contactCount}>
+            {filtered.length} Contacts
+          </Text>
+        </View>
 
-</View>
+      </View>
 
       <View style={styles.searchContainer}>
 
-<Ionicons
-name="search"
-size={20}
-color="#64748B"
-/>
+        <Ionicons
+          name="search"
+          size={20}
+          color="#64748B"
+        />
 
-<TextInput
-placeholder="Search people..."
-placeholderTextColor="#94A3B8"
-value={search}
-onChangeText={setSearch}
-style={styles.search}
-underlineColorAndroid="transparent"
-  selectionColor="#2563EB"
-  cursorColor="#2563EB"
-/>
+        <TextInput
+          placeholder="Search people..."
+          placeholderTextColor="#94A3B8"
+          value={search}
+          onChangeText={setSearch}
+          style={styles.search}
+          underlineColorAndroid="transparent"
+          selectionColor="#2563EB"
+          cursorColor="#2563EB"
+        />
 
-</View>
+      </View>
 
       <FlatList
 
-      ItemSeparatorComponent={()=>
+        ItemSeparatorComponent={() =>
 
-<View style={styles.divider}/>
+          <View style={styles.divider} />
 
-}
+        }
         data={filtered}
         keyExtractor={(item) => item.uid}
         renderItem={({ item }) => (
           <TouchableOpacity
-style={styles.contactItem}
-onPress={async ()=>{
+            style={styles.contactItem}
+            onPress={async () => {
 
-const me=getCurrentUser();
+              const me = getCurrentUser();
 
-if(!me)return;
+              if (!me) return;
 
-const chatId=getChatId(
-me.uid,
-item.uid
-);
+              const chatId = getChatId(
+                me.uid,
+                item.uid
+              );
 
-await createChatRoom(
-chatId,
-me.uid,
-item.uid
-);
+              await createChatRoom(
+                chatId,
+                me.uid,
+                item.uid
+              );
 
-navigation.navigate("Chat",{
-chatId,
-otherUserId:item.uid
-});
+              navigation.navigate("Chat", {
+                chatId,
+                otherUserId: item.uid
+              });
 
-}}
->
+            }}
+          >
 
-<View style={styles.avatarWrapper}>
+            <View style={styles.avatarWrapper}>
 
-{
-item.photo
-?
+              {
+                item.photo
+                  ?
 
-<Image
-source={{uri:item.photo}}
-style={styles.avatar}
-/>
+                  <Image
+                    source={{ uri: item.photo }}
+                    style={styles.avatar}
+                  />
 
-:
+                  :
 
-<View style={styles.avatar}>
+                  <View style={styles.avatar}>
 
-<Text style={styles.avatarText}>
-{item.name.charAt(0).toUpperCase()}
-</Text>
+                    <Text style={styles.avatarText}>
+                      {item.name.charAt(0).toUpperCase()}
+                    </Text>
 
-</View>
+                  </View>
 
-}
+              }
 
-{
-item.online && (
-<View style={styles.onlineDot}/>
-)
-}
+              {
+                item.online && (
+                  <View style={styles.onlineDot} />
+                )
+              }
 
-</View>
+            </View>
 
-<View style={{flex:1}}>
+            <View style={{ flex: 1 }}>
 
-<Text style={styles.name}>
-{item.name}
-</Text>
+              <Text style={styles.name}>
+                {item.name}
+              </Text>
 
-<Text
-numberOfLines={1}
-style={styles.username}
->
+              <Text
+                numberOfLines={1}
+                style={styles.username}
+              >
 
-{item.about || "Hey! I am using TruSphere."}
+                {item.about || "Hey! I am using TruSphere."}
 
-</Text>
+              </Text>
 
-</View>
+            </View>
 
-<Ionicons
-name="chevron-forward"
-size={20}
-color="#CBD5E1"
-/>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color="#CBD5E1"
+            />
 
-</TouchableOpacity>
+          </TouchableOpacity>
         )}
       />
     </SafeAreaView>
@@ -197,116 +197,116 @@ color="#CBD5E1"
 
 const styles = StyleSheet.create({
 
-container:{
-flex:1,
-backgroundColor:"#F8FAFC",
-},
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
 
-header:{
-flexDirection:"row",
-alignItems:"center",
-paddingHorizontal:20,
-paddingTop:15,
-paddingBottom:20,
-backgroundColor:"#fff",
-elevation:2,
-},
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 20,
+    backgroundColor: "#fff",
+    elevation: 2,
+  },
 
-backButton:{
-width:42,
-height:42,
-borderRadius:21,
-justifyContent:"center",
-alignItems:"center",
-marginRight:12,
-},
+  backButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
 
-headerTitle:{
-fontSize:30,
-fontWeight:"800",
-color:"#111827",
-},
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: "#111827",
+  },
 
-contactCount:{
-marginTop:3,
-fontSize:14,
-color:"#64748B",
-},
+  contactCount: {
+    marginTop: 3,
+    fontSize: 14,
+    color: "#64748B",
+  },
 
-searchContainer:{
-height:56,
-marginHorizontal:18,
-marginTop:18,
-marginBottom:16,
-borderRadius:18,
-backgroundColor:"#fff",
-flexDirection:"row",
-alignItems:"center",
-paddingHorizontal:18,
-elevation:2,
-},
+  searchContainer: {
+    height: 56,
+    marginHorizontal: 18,
+    marginTop: 18,
+    marginBottom: 16,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    elevation: 2,
+  },
 
-search:{
-flex:1,
-fontSize:16,
-marginLeft:10,
-},
+  search: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 10,
+  },
 
-contactItem:{
-flexDirection:"row",
-alignItems:"center",
-paddingHorizontal:18,
-paddingVertical:14,
-backgroundColor:"#fff",
-},
+  contactItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: "#fff",
+  },
 
-avatarWrapper:{
-marginRight:14,
-},
+  avatarWrapper: {
+    marginRight: 14,
+  },
 
-avatar:{
-width:58,
-height:58,
-borderRadius:29,
-backgroundColor:"#2563EB",
-justifyContent:"center",
-alignItems:"center",
-},
+  avatar: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-avatarText:{
-fontSize:24,
-fontWeight:"700",
-color:"#fff",
-},
+  avatarText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#fff",
+  },
 
-onlineDot:{
-position:"absolute",
-right:2,
-bottom:2,
-width:14,
-height:14,
-borderRadius:7,
-backgroundColor:"#22C55E",
-borderWidth:2,
-borderColor:"#fff",
-},
+  onlineDot: {
+    position: "absolute",
+    right: 2,
+    bottom: 2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#22C55E",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
 
-name:{
-fontSize:17,
-fontWeight:"700",
-color:"#111827",
-},
+  name: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
+  },
 
-username:{
-marginTop:4,
-fontSize:14,
-color:"#6B7280",
-},
+  username: {
+    marginTop: 4,
+    fontSize: 14,
+    color: "#6B7280",
+  },
 
-divider:{
-height:1,
-marginLeft:90,
-backgroundColor:"#EEF2F7",
-},
+  divider: {
+    height: 1,
+    marginLeft: 90,
+    backgroundColor: "#EEF2F7",
+  },
 
 });

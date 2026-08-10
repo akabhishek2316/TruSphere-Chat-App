@@ -10,19 +10,18 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { registerForPushNotifications } from "../services/notificationService";
-import { saveFcmToken } from "../services/userService";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { UserId } from "../types/chat";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-
+import { signOut } from "@react-native-firebase/auth";
+import { auth } from "../services/firebase";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
 import { register } from "../services/authService";
-import { getDeviceId } from "../services/deviceService";
-import { createSession } from "../services/sessionService";
+
 import {
   createUserProfile,
   isUsernameExists,
@@ -224,31 +223,12 @@ await createUserProfile(result.user.uid, {
   email: email.trim(),
 });
 
-const deviceId = await getDeviceId();
-
-const sessionId =
-await createSession(
-   result.user.uid,
-   deviceId
-);
-
-await AsyncStorage.setItem(
-   "SESSION_ID",
-   sessionId
-);
 
 
-const fcmToken =
-  await registerForPushNotifications();
-
-if (fcmToken) {
-  await saveFcmToken(
-    result.user.uid,
-    fcmToken
-  );
-}
 
 
+
+await signOut(auth);
 
       Alert.alert(
         "Success",
@@ -507,8 +487,8 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: 120,
-    height: 120,
+    width: 90,
+    height: 90,
     resizeMode: "contain",
     alignSelf: "center",
 

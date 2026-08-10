@@ -47,6 +47,7 @@ type Props = {
   onScrollToMessage?: (messageId: string) => void;
   highlighted?: boolean;
   selected?: boolean;
+  onReaction?: (message: ChatMessage, emoji: string) => void;
 };
 
 export default function MessageBubble({
@@ -59,9 +60,10 @@ export default function MessageBubble({
   onScrollToMessage,
   highlighted,
   selected = false,
+  onReaction
 }: Props) {
 
- 
+
 
   const navigation = useNavigation<any>();
   const isMe = message.sender === currentUserId;
@@ -105,6 +107,20 @@ export default function MessageBubble({
         mass: 0.5,
       });
     });
+
+  const doubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(250)
+    .onEnd((_, success) => {
+      if (success && onReaction) {
+        runOnJS(onReaction)(message, "❤️");
+      }
+    });
+
+  const messageGesture = Gesture.Simultaneous(
+    swipeGesture,
+    doubleTapGesture
+  );
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -182,7 +198,7 @@ export default function MessageBubble({
   }));
 
 
-  
+
   if (
     !isMe &&
     (message.type === "voice" || message.type === "image") &&
@@ -277,7 +293,7 @@ export default function MessageBubble({
 
   // Delete for everyone
   if (message.deletedForEveryone) {
-    
+
     return (
       <View
         style={[
@@ -307,7 +323,7 @@ export default function MessageBubble({
             }}
           >
             <Ionicons
-              name="remove-circle-outline"
+              name="ban-outline"
               size={15}
               color="#7C8798"
               style={{ marginRight: 5 }}
@@ -355,7 +371,7 @@ export default function MessageBubble({
         />
       </Animated.View>
 
-      <GestureDetector gesture={swipeGesture}>
+      <GestureDetector gesture={messageGesture}>
 
         <Animated.View
           style={[
@@ -413,10 +429,7 @@ export default function MessageBubble({
                 </Text>
 
                 <View style={styles.inlineFooter}>
-                  <Text style={styles.time}>
-                    {time}
-                  </Text>
-
+                  <Text style={styles.time}>{time}</Text>
                   {renderTick()}
                 </View>
               </View>
@@ -496,21 +509,26 @@ export default function MessageBubble({
           )}
 
           {message.type === "voice" && (
-  <View style={styles.voiceWrapper}>
-    <VoicePlayer
-      voiceUrl={message.voiceUrl!}
-      duration={message.duration!}
-      status={message.status}
-    />
-  </View>
-)}
+            <View style={styles.voiceWrapper}>
+              <VoicePlayer
+                voiceUrl={message.voiceUrl!}
+                duration={message.duration!}
+                status={message.status}
+              />
+            </View>
+          )}
 
-<View style={styles.footer}>
-  <Text style={styles.time}>{time}</Text>
-  {renderTick()}
-</View>
+          {message.type === "text" && !shouldInlineFooter && (
+            <View style={styles.footer}>
+              <Text style={styles.time}>
+                {time}
+              </Text>
 
-         {!shouldInlineFooter && message.type !== "voice" && (
+              {renderTick()}
+            </View>
+          )}
+
+          {message.type !== "text" && (
             <View style={styles.footer}>
               <Text style={styles.time}>
                 {time}
@@ -648,7 +666,7 @@ const styles = StyleSheet.create({
   },
 
   message: {
-   
+
     fontSize: 15,
     color: "#111827",
     lineHeight: 20,
@@ -668,7 +686,7 @@ const styles = StyleSheet.create({
     color: "#7C8798",
     marginRight: 3,
     marginLeft: 4,
-   
+
   },
 
   replyBox: {
@@ -762,15 +780,15 @@ const styles = StyleSheet.create({
   },
 
   voiceFooter: {
-  marginTop: 4,
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-},
+    marginTop: 4,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
 
-voiceDuration: {
-  fontSize: 11,
-  color: "#6B7280",
-},
+  voiceDuration: {
+    fontSize: 11,
+    color: "#6B7280",
+  },
 });
 

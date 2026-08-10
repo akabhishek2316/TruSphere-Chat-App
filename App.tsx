@@ -6,9 +6,9 @@ import { PaperProvider } from "react-native-paper";
 import { useEffect } from "react";
 
 import AppNavigator from "./src/navigation/AppNavigator";
-
+import { StatusBar } from "expo-status-bar";
 import { AppState } from "react-native";
-import { auth } from "./src/services/firebase";
+
 
 import { getCurrentUser } from "./src/services/authService";
 import { updateSession } from "./src/services/sessionService";
@@ -19,28 +19,24 @@ import {
 } from "./src/services/appService";
 
 import {
- startForegroundNotificationListener,
- stopForegroundNotificationListener
+  startForegroundNotificationListener,
+  stopForegroundNotificationListener,
+  setupNotificationChannel,
 } from "./src/services/notificationService";
 
 
 export default function App() {
   
   useEffect(() => {
+  setupNotificationChannel();
 
- startAppServices();
+  startAppServices();
+  startForegroundNotificationListener();
 
- startForegroundNotificationListener();
-
-
- return () => {
-
-   stopForegroundNotificationListener();
-
-   stopAppServices();
-
- };
-
+  return () => {
+    stopForegroundNotificationListener();
+    stopAppServices();
+  };
 }, []);
   
   useEffect(() => {
@@ -71,6 +67,10 @@ export default function App() {
   
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <StatusBar
+      style="dark"
+      backgroundColor="#F8FAFC"
+    />
       <PaperProvider>
         <SafeAreaProvider>
           <AppNavigator />

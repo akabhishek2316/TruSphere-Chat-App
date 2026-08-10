@@ -29,8 +29,8 @@ export default function SecretScreen() {
   const [confirm, setConfirm] = useState("");
 
   const [showCurrent, setShowCurrent] = useState(false);
-const [showNew, setShowNew] = useState(false);
-const [showConfirm, setShowConfirm] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     load();
@@ -90,87 +90,87 @@ const [showConfirm, setShowConfirm] = useState(false);
       </Text>
 
       <View style={styles.passwordBox}>
-  <TextInput
-    value={current}
-    editable={false}
-    secureTextEntry={!showCurrent}
-    style={styles.passwordInput}
-    underlineColorAndroid="transparent"
-  selectionColor="#2563EB"
-  cursorColor="#2563EB"
-  />
+        <TextInput
+          value={current}
+          editable={false}
+          secureTextEntry={!showCurrent}
+          style={styles.passwordInput}
+          underlineColorAndroid="transparent"
+          selectionColor="#2563EB"
+          cursorColor="#2563EB"
+        />
 
-  <Ionicons
-    name={
-      showCurrent
-        ? "eye-off-outline"
-        : "eye-outline"
-    }
-    size={22}
-    color="#666"
-    onPress={() =>
-      setShowCurrent(!showCurrent)
-    }
-  />
-</View>
+        <Ionicons
+          name={
+            showCurrent
+              ? "eye-off-outline"
+              : "eye-outline"
+          }
+          size={22}
+          color="#666"
+          onPress={() =>
+            setShowCurrent(!showCurrent)
+          }
+        />
+      </View>
 
       <Text style={styles.label}>
         New Secret
       </Text>
 
       <View style={styles.passwordBox}>
-  <TextInput
-    value={secret}
-    onChangeText={setSecret}
-    secureTextEntry={!showNew}
-    style={styles.passwordInput}
-    underlineColorAndroid="transparent"
-  selectionColor="#2563EB"
-  cursorColor="#2563EB"
-  />
+        <TextInput
+          value={secret}
+          onChangeText={setSecret}
+          secureTextEntry={!showNew}
+          style={styles.passwordInput}
+          underlineColorAndroid="transparent"
+          selectionColor="#2563EB"
+          cursorColor="#2563EB"
+        />
 
-  <Ionicons
-    name={
-      showNew
-        ? "eye-off-outline"
-        : "eye-outline"
-    }
-    size={22}
-    color="#666"
-    onPress={() =>
-      setShowNew(!showNew)
-    }
-  />
-</View>
+        <Ionicons
+          name={
+            showNew
+              ? "eye-off-outline"
+              : "eye-outline"
+          }
+          size={22}
+          color="#666"
+          onPress={() =>
+            setShowNew(!showNew)
+          }
+        />
+      </View>
 
       <Text style={styles.label}>
         Confirm Secret
       </Text>
 
       <View style={styles.passwordBox}>
-  <TextInput
-    value={confirm}
-    onChangeText={setConfirm}
-    secureTextEntry={!showConfirm}
-    style={styles.passwordInput}
-    underlineColorAndroid="transparent"
-  selectionColor="#2563EB"
-  cursorColor="#2563EB"
-  />
+        <TextInput
+          value={confirm}
+          onChangeText={setConfirm}
+          secureTextEntry={!showConfirm}
+          style={styles.passwordInput}
+          underlineColorAndroid="transparent"
+          selectionColor="#2563EB"
+          cursorColor="#2563EB"
+        />
 
-  <Ionicons
-    name={
-      showConfirm
-        ? "eye-off-outline"
-        : "eye-outline"
-    }
-    size={22}
-    color="#666"
-    onPress={() =>
-      setShowConfirm(!showConfirm)
-    }
-  />
-</View>
+        <Ionicons
+          name={
+            showConfirm
+              ? "eye-off-outline"
+              : "eye-outline"
+          }
+          size={22}
+          color="#666"
+          onPress={() =>
+            setShowConfirm(!showConfirm)
+          }
+        />
+      </View>
 
       <TouchableOpacity
         style={styles.button}
@@ -230,19 +230,19 @@ const styles = StyleSheet.create({
   },
 
   passwordBox: {
-  flexDirection: "row",
-  alignItems: "center",
-  borderWidth: 1,
-  borderColor: "#ddd",
-  borderRadius: 12,
-  backgroundColor: "#fff",
-  paddingHorizontal: 12,
-  marginBottom: 18,
-},
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    paddingHorizontal: 12,
+    marginBottom: 18,
+  },
 
-passwordInput: {
-  flex: 1,
-  height: 54,
-  fontSize: 16,
-},
+  passwordInput: {
+    flex: 1,
+    height: 54,
+    fontSize: 16,
+  },
 });

@@ -141,10 +141,8 @@ export default function ChatHeader({
   }, []);
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={styles.safe}
-    >
+    
+    <>
       <View style={styles.container}>
         <TouchableOpacity
           activeOpacity={0.75}
@@ -449,6 +447,8 @@ export default function ChatHeader({
         />
       </View>
 
+     
+
       <ClearChatModal
         visible={showClearChat}
         onClose={() => setShowClearChat(false)}
@@ -498,8 +498,8 @@ export default function ChatHeader({
 
         }}
       />
-
-    </SafeAreaView>
+    </>
+    
   );
 
 }
@@ -514,9 +514,7 @@ export default function ChatHeader({
 
 
 const styles = StyleSheet.create({
-  safe: {
-    backgroundColor: "#FFFFFF",
-  },
+  
 
   container: {
     height: 64,

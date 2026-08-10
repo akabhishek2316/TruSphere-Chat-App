@@ -22,7 +22,7 @@ type Props = {
   about?: string;
   email?: string;
   online?: boolean;
-  uid?:string;
+  uid?: string;
   onEdit: () => void;
 };
 
@@ -80,24 +80,24 @@ export default function MyProfileModal({
           </Text>
 
           <TouchableOpacity
-  style={styles.usernameRow}
-  onPress={async () => {
+            style={styles.usernameRow}
+            onPress={async () => {
 
-    await Clipboard.setStringAsync(
-      username ?? ""
-    );
+              await Clipboard.setStringAsync(
+                username ?? ""
+              );
 
-   
 
-  }}
->
 
-  <Text style={styles.username}>
-    @{username}
-  </Text>
+            }}
+          >
 
- 
-</TouchableOpacity>
+            <Text style={styles.username}>
+              @{username}
+            </Text>
+
+
+          </TouchableOpacity>
 
           <View style={styles.statusRow}>
 
@@ -145,44 +145,50 @@ export default function MyProfileModal({
           </View>
 
           <View style={styles.info}>
-    <Text style={styles.label}>
-        Joined
-    </Text>
+            <Text style={styles.label}>
+              Joined
+            </Text>
 
-    <Text style={styles.value}>
-        {createdAt
-            ? new Date(createdAt).toLocaleDateString()
-            : "-"}
-    </Text>
-</View>
+            <Text style={styles.value}>
+              {createdAt
+                ? new Date(createdAt).toLocaleDateString(
+                  "en-IN",
+                  {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }
+                ) : ""}
+            </Text>
+          </View>
 
-<View style={styles.info}>
-    <Text style={styles.label}>
-        User ID
-    </Text>
+          <View style={styles.info}>
+            <Text style={styles.label}>
+              User ID
+            </Text>
 
-    <View style={styles.usernameRow}>
+            <View style={styles.usernameRow}>
 
-  <Text style={styles.userId}>
-    {uid}
-  </Text>
+              <Text style={styles.userId}>
+                {uid}
+              </Text>
 
-  <TouchableOpacity
-    onPress={async () => {
-      await Clipboard.setStringAsync(uid ?? "");
+              <TouchableOpacity
+                onPress={async () => {
+                  await Clipboard.setStringAsync(uid ?? "");
 
-      
-    }}
-  >
-    <Ionicons
-      name="copy-outline"
-      size={18}
-      color="#2563EB"
-    />
-  </TouchableOpacity>
 
-</View>
-</View>
+                }}
+              >
+                <Ionicons
+                  name="copy-outline"
+                  size={18}
+                  color="#2563EB"
+                />
+              </TouchableOpacity>
+
+            </View>
+          </View>
 
           <TouchableOpacity
             style={styles.button}
@@ -212,129 +218,129 @@ export default function MyProfileModal({
 
 const styles = StyleSheet.create({
 
-  overlay:{
-    flex:1,
-    backgroundColor:"rgba(0,0,0,0.45)",
-    justifyContent:"center",
-    alignItems:"center",
-    padding:24,
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
   },
 
-  card:{
-    width:"100%",
-    backgroundColor:"#fff",
-    borderRadius:30,
-    padding:28,
-    alignItems:"center",
+  card: {
+    width: "100%",
+    backgroundColor: "#fff",
+    borderRadius: 30,
+    padding: 28,
+    alignItems: "center",
   },
 
-  close:{
-    position:"absolute",
-    top:18,
-    right:18,
+  close: {
+    position: "absolute",
+    top: 18,
+    right: 18,
   },
 
-  avatar:{
-    width:110,
-    height:110,
-    borderRadius:55,
-    backgroundColor:"#2563EB",
-    justifyContent:"center",
-    alignItems:"center",
-    overflow:"hidden",
+  avatar: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
 
-  avatarText:{
-    color:"#fff",
-    fontSize:42,
-    fontWeight:"700",
+  avatarText: {
+    color: "#fff",
+    fontSize: 42,
+    fontWeight: "700",
   },
 
-  name:{
-    marginTop:18,
-    fontSize:24,
-    fontWeight:"700",
-    color:"#111827",
+  name: {
+    marginTop: 18,
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#111827",
   },
 
-  username:{
+  username: {
     fontSize: 15,
-  color: "#2563EB",
-  fontWeight: "600",
+    color: "#2563EB",
+    fontWeight: "600",
   },
 
-  statusRow:{
-    flexDirection:"row",
-    alignItems:"center",
-    marginTop:12,
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
   },
 
-  dot:{
-    width:10,
-    height:10,
-    borderRadius:5,
-    marginRight:8,
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
   },
 
-  status:{
-    color:"#64748B",
-    fontSize:14,
+  status: {
+    color: "#64748B",
+    fontSize: 14,
   },
 
-  divider:{
-    width:"100%",
-    height:1,
-    backgroundColor:"#E5E7EB",
-    marginVertical:24,
+  divider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 24,
   },
 
-  info:{
-    width:"100%",
-    marginBottom:18,
+  info: {
+    width: "100%",
+    marginBottom: 18,
   },
 
-  label:{
-    color:"#94A3B8",
-    fontSize:13,
-    marginBottom:4,
+  label: {
+    color: "#94A3B8",
+    fontSize: 13,
+    marginBottom: 4,
   },
 
-  value:{
-    color:"#111827",
-    fontSize:16,
-    fontWeight:"600",
+  value: {
+    color: "#111827",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
-  button:{
-    marginTop:12,
-    backgroundColor:"#2563EB",
-    width:"100%",
-    height:54,
-    borderRadius:16,
-    flexDirection:"row",
-    justifyContent:"center",
-    alignItems:"center",
+  button: {
+    marginTop: 12,
+    backgroundColor: "#2563EB",
+    width: "100%",
+    height: 54,
+    borderRadius: 16,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
-  buttonText:{
-    color:"#fff",
-    fontSize:16,
-    fontWeight:"700",
-    marginLeft:8,
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    marginLeft: 8,
   },
 
   usernameRow: {
-  flexDirection: "row",
-  alignItems: "baseline",
-  justifyContent: "space-between",
-  marginTop: 6,
-},
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    marginTop: 6,
+  },
 
-userId: {
-  fontSize: 15,
-  color: "#2563EB",
-  fontWeight: "600",
-  // marginRight: 6,
-},
+  userId: {
+    fontSize: 15,
+    color: "#2563EB",
+    fontWeight: "600",
+    // marginRight: 6,
+  },
 
 });

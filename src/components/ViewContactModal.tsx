@@ -16,24 +16,24 @@ import { Ionicons } from "@expo/vector-icons";
 type Props = {
   visible: boolean;
   onClose: () => void;
- uid?: string;
+  uid?: string;
   name: string;
-   username?: string;
+  username?: string;
   photo?: string;
   about?: string;
   createdAt?: number;
   online?: boolean;
   lastSeen?: string;
-   hideUserInfo?: boolean;
+  hideUserInfo?: boolean;
 };
 
 export default function ViewContactModal({
   visible,
   onClose,
   name,
-   username,
-    uid,
-   createdAt,
+  username,
+  uid,
+  createdAt,
   photo,
   about,
   online,
@@ -50,232 +50,232 @@ export default function ViewContactModal({
 
         <View style={styles.card}>
 
-       <View style={styles.header}>
+          <View style={styles.header}>
 
-  <TouchableOpacity
-    style={styles.close}
-    onPress={onClose}
-  >
-    <Ionicons
-      name="close"
-      size={24}
-      color="#fff"
-    />
-  </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.close}
+              onPress={onClose}
+            >
+              <Ionicons
+                name="close"
+                size={24}
+                color="#fff"
+              />
+            </TouchableOpacity>
 
- {hideUserInfo ? (
+            {hideUserInfo ? (
 
-  <View style={styles.avatar}>
-    <Ionicons
-      name="person"
-      size={42}
-      color="#FFFFFF"
-    />
-  </View>
+              <View style={styles.avatar}>
+                <Ionicons
+                  name="person"
+                  size={42}
+                  color="#FFFFFF"
+                />
+              </View>
 
-) : photo ? (
+            ) : photo ? (
 
-  <Image
-    source={{ uri: photo }}
-    style={styles.avatar}
-  />
+              <Image
+                source={{ uri: photo }}
+                style={styles.avatar}
+              />
 
-) : (
+            ) : (
 
-  <View style={styles.avatar}>
-    <Text style={styles.avatarText}>
-      {name.charAt(0).toUpperCase()}
-    </Text>
-  </View>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
 
-)}
+            )}
 
-</View>
+          </View>
 
-<View style={styles.content}>
+          <View style={styles.content}>
 
-  <Text style={styles.name}>
-    {name}
-  </Text>
+            <Text style={styles.name}>
+              {name}
+            </Text>
 
-  {!hideUserInfo && !!username && (
-  <Text style={styles.username}>
-    @{username}
-  </Text>
-)}
+            {!hideUserInfo && !!username && (
+              <Text style={styles.username}>
+                @{username}
+              </Text>
+            )}
 
-  <Text style={styles.about}>
-  {!hideUserInfo && !!about && (
-  <Text style={styles.about}>
-    {about}
-  </Text>
-)}
-</Text>
+            <Text style={styles.about}>
+              {!hideUserInfo && !!about && (
+                <Text style={styles.about}>
+                  {about}
+                </Text>
+              )}
+            </Text>
 
-  <View style={styles.statusRow}>
-    {!hideUserInfo && (
-  <View
-    style={[
-      styles.dot,
-      {
-        backgroundColor: online
-          ? "#22C55E"
-          : "#9CA3AF",
-      },
-    ]}
-  />
-)}
+            <View style={styles.statusRow}>
+              {!hideUserInfo && (
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: online
+                        ? "#22C55E"
+                        : "#9CA3AF",
+                    },
+                  ]}
+                />
+              )}
 
-    <Text style={styles.status}>
-  {hideUserInfo
-    ? ""
-    : online
-    ? "Online"
-    : lastSeen || "Offline"}
-</Text>
-  </View>
+              <Text style={styles.status}>
+                {hideUserInfo
+                  ? ""
+                  : online
+                    ? "Online"
+                    : lastSeen || "Offline"}
+              </Text>
+            </View>
 
-  
 
-  <View style={styles.infoContainer}>
 
-     <View style={styles.divider} />
+            <View style={styles.infoContainer}>
 
-   {!!uid && !hideUserInfo && (
+              <View style={styles.divider} />
 
-      <View style={styles.infoRow}>
+              {!!uid && !hideUserInfo && (
 
-        
+                <View style={styles.infoRow}>
 
-        <Text style={styles.infoLabel}>
-          UID
-        </Text>
 
-        <View style={styles.infoRight}>
 
-          <Text
-numberOfLines={1}
-ellipsizeMode="middle"
-style={styles.infoValue}
->
-{uid}
-</Text>
+                  <Text style={styles.infoLabel}>
+                    UID
+                  </Text>
 
-          <TouchableOpacity
-            onPress={async () => {
-              await Clipboard.setStringAsync(uid);
+                  <View style={styles.infoRight}>
 
-              
-            }}
-          >
-            <Ionicons
-              name="copy-outline"
-              size={18}
-              color="#2563EB"
-            />
-          </TouchableOpacity>
+                    <Text
+                      numberOfLines={1}
+                      ellipsizeMode="middle"
+                      style={styles.infoValue}
+                    >
+                      {uid}
+                    </Text>
 
+                    <TouchableOpacity
+                      onPress={async () => {
+                        await Clipboard.setStringAsync(uid);
+
+
+                      }}
+                    >
+                      <Ionicons
+                        name="copy-outline"
+                        size={18}
+                        color="#2563EB"
+                      />
+                    </TouchableOpacity>
+
+                  </View>
+
+                </View>
+
+              )}
+
+              <View style={styles.divider} />
+
+              {!!createdAt && !hideUserInfo && (
+
+                <View style={styles.infoRow}>
+
+                  <Text style={styles.infoLabel}>
+                    Joined
+                  </Text>
+
+                  <Text style={styles.infoValue}>
+                    {new Date(createdAt).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }
+                    )}
+                  </Text>
+
+                </View>
+
+              )}
+
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.actions}>
+
+              <TouchableOpacity style={styles.action}>
+
+                <View style={styles.iconCircle}>
+                  <Ionicons
+                    name="call-outline"
+                    size={24}
+                    color="#2563EB"
+                  />
+                </View>
+
+                <Text style={styles.actionTitle}>
+                  Call
+                </Text>
+
+                <Text style={styles.actionSub}>
+                  Coming Soon
+                </Text>
+
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.action}>
+
+                <View style={styles.iconCircle}>
+                  <Ionicons
+                    name="videocam-outline"
+                    size={24}
+                    color="#2563EB"
+                  />
+                </View>
+
+                <Text style={styles.actionTitle}>
+                  Video
+                </Text>
+
+                <Text style={styles.actionSub}>
+                  Coming Soon
+                </Text>
+
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.action}>
+
+                <View style={styles.iconCircle}>
+                  <Ionicons
+                    name="images-outline"
+                    size={24}
+                    color="#2563EB"
+                  />
+                </View>
+
+                <Text style={styles.actionTitle}>
+                  Media
+                </Text>
+
+                <Text style={styles.actionSub}>
+                  Coming Soon
+                </Text>
+
+              </TouchableOpacity>
+
+            </View>
+
+          </View>
         </View>
-
-      </View>
-
-    )}
-
-     <View style={styles.divider} />
-
-    {!!createdAt && !hideUserInfo && (
-
-      <View style={styles.infoRow}>
-
-        <Text style={styles.infoLabel}>
-          Joined
-        </Text>
-
-        <Text style={styles.infoValue}>
-          {new Date(createdAt).toLocaleDateString(
-            "en-IN",
-            {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            }
-          )}
-        </Text>
-
-      </View>
-
-    )}
-
-  </View>
-
-  <View style={styles.divider} />
-
-  <View style={styles.actions}>
-
-    <TouchableOpacity style={styles.action}>
-
-      <View style={styles.iconCircle}>
-        <Ionicons
-          name="call-outline"
-          size={24}
-          color="#2563EB"
-        />
-      </View>
-
-      <Text style={styles.actionTitle}>
-        Call
-      </Text>
-
-      <Text style={styles.actionSub}>
-        Coming Soon
-      </Text>
-
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.action}>
-
-      <View style={styles.iconCircle}>
-        <Ionicons
-          name="videocam-outline"
-          size={24}
-          color="#2563EB"
-        />
-      </View>
-
-      <Text style={styles.actionTitle}>
-        Video
-      </Text>
-
-      <Text style={styles.actionSub}>
-        Coming Soon
-      </Text>
-
-    </TouchableOpacity>
-
-    <TouchableOpacity style={styles.action}>
-
-      <View style={styles.iconCircle}>
-        <Ionicons
-          name="images-outline"
-          size={24}
-          color="#2563EB"
-        />
-      </View>
-
-      <Text style={styles.actionTitle}>
-        Media
-      </Text>
-
-      <Text style={styles.actionSub}>
-        Coming Soon
-      </Text>
-
-    </TouchableOpacity>
-
-  </View>
-
-</View>
-</View>
       </View>
     </Modal>
   );
@@ -409,8 +409,6 @@ const styles = StyleSheet.create({
 
     paddingVertical: 14,
 
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#EEF2F7",
   },
 
   infoLabel: {
@@ -444,7 +442,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop:10,
+    marginTop: 10,
   },
 
   action: {

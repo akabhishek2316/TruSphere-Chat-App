@@ -29,37 +29,37 @@ export default function SplashScreen({
   navigation,
 }: Props) {
 
-  
+
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    console.log("AUTH STATE =>", user?.uid);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("AUTH STATE =>", user?.uid);
 
-    if (user) {
-  const pending = getPendingNotification();
+      if (user) {
+        const pending = getPendingNotification();
 
-  if (pending) {
-    clearPendingNotification();
+        if (pending) {
+          clearPendingNotification();
 
-    navigation.replace("Chat", {
-      chatId: pending.chatId,
-      otherUserId: pending.senderId,
+          navigation.replace("Chat", {
+            chatId: pending.chatId,
+            otherUserId: pending.senderId,
+          });
+
+          return;
+        }
+
+        navigation.replace("ChatList");
+      } else {
+        navigation.replace("Login");
+      }
+
     });
 
-    return;
-  }
+    return unsubscribe;
+  }, []);
 
-  navigation.replace("ChatList");
-} else {
-  navigation.replace("Login");
-}
 
-  });
-
-  return unsubscribe;
-}, []);
-
-  
 
 
   return (

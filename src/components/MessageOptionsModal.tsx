@@ -14,7 +14,7 @@ import { Colors } from "../theme/colors";
 type Props = {
   visible: boolean;
   onClose: () => void;
-  
+  isDeletedMessage: boolean;
   onReply: () => void;
   onCopy: () => void;
   onDeleteMe: () => void;
@@ -26,13 +26,14 @@ type Props = {
 export default function MessageOptionsModal({
   visible,
   onClose,
+  isDeletedMessage,
   onReply,
   onCopy,
   onDeleteMe,
   onDeleteEveryone,
   canDeleteEveryone,
-   onReaction,
-   
+  onReaction,
+
 }: Props) {
   const Item = (
     icon: any,
@@ -71,6 +72,7 @@ export default function MessageOptionsModal({
       visible={visible}
       transparent
       animationType="slide"
+      onRequestClose={onClose}
     >
       <Pressable
         style={styles.overlay}
@@ -82,43 +84,42 @@ export default function MessageOptionsModal({
 
       <View style={styles.sheet}>
 
-<View style={styles.emojiRow}>
-  {emojis.map((emoji) => (
-    <TouchableOpacity
-      key={emoji}
-      style={styles.emojiButton}
-      onPress={() => {
-        onClose();
-        onReaction(emoji);
-      }}
-    >
-      <Text style={styles.emoji}>
-        {emoji}
-      </Text>
-    </TouchableOpacity>
-  ))}
-</View>
 
 
-
-
-
-
-        {Item(
-          "return-up-back-outline",
-          "Reply",
-          Colors.text,
-          onReply
+        {!isDeletedMessage && (
+          <View style={styles.emojiRow}>
+            {emojis.map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                style={styles.emojiButton}
+                onPress={() => {
+                  onClose();
+                  onReaction(emoji);
+                }}
+              >
+                <Text style={styles.emoji}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         )}
 
-        {Item(
-          "copy-outline",
-          "Copy",
-          Colors.text,
-          onCopy
-        )}
+        {!isDeletedMessage && (
+          <>
+            {Item(
+              "return-up-back-outline",
+              "Reply",
+              Colors.text,
+              onReply
+            )}
 
-       
+            {Item(
+              "copy-outline",
+              "Copy",
+              Colors.text,
+              onCopy
+            )}
+          </>
+        )}
 
         {Item(
           "trash-outline",
@@ -127,13 +128,14 @@ export default function MessageOptionsModal({
           onDeleteMe
         )}
 
-        {canDeleteEveryone &&
-  Item(
-    "trash",
-    "Delete for Everyone",
-    "#EF4444",
-    onDeleteEveryone
-  )}
+        {!isDeletedMessage && canDeleteEveryone && (
+          Item(
+            "trash",
+            "Delete for Everyone",
+            "#EF4444",
+            onDeleteEveryone
+          )
+        )}
       </View>
     </Modal>
   );
@@ -174,18 +176,18 @@ const styles = StyleSheet.create({
   },
 
   emojiRow: {
-  flexDirection: "row",
-  justifyContent: "space-evenly",
-  paddingVertical: 14,
-  borderBottomWidth: 1,
-  borderBottomColor: "#EEEEEE",
-},
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+  },
 
-emojiButton: {
-  padding: 6,
-},
+  emojiButton: {
+    padding: 6,
+  },
 
-emoji: {
-  fontSize: 28,
-},
+  emoji: {
+    fontSize: 28,
+  },
 });

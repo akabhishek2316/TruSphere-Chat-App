@@ -361,30 +361,6 @@ export function subscribeBlockedUsers(
 }
 
 
-// export async function savePushToken(
-//   uid: string,
-//   token: string
-// ) {
-//   await update(
-//     ref(database, `users/${uid}`),
-//     {
-//       expoPushToken: token,
-//     }
-//   );
-// }
-
-
-// export async function getUserPushToken(uid: string) {
-//   const snap = await get(
-//     ref(database, `users/${uid}/expoPushToken`)
-//   );
-
-//   if (!snap.exists()) return null;
-
-//   return snap.val();
-// }
-
-
 
 export async function getCurrentChat(uid: string) {
   const snap = await get(
@@ -396,7 +372,7 @@ export async function getCurrentChat(uid: string) {
   return snap.val();
 }
 
-//fcm code new
+//fcm code 
 
 export async function saveFcmToken(
   uid: string,

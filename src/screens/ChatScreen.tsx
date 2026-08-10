@@ -44,15 +44,17 @@ import {
 import { update } from "firebase/database";
 import { Database } from "firebase/database";
 import {
-  SafeAreaView,
+  
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   FlatList,
   View,
   Text,
-
+  BackHandler,
 } from "react-native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
 
@@ -146,27 +148,27 @@ export default function ChatScreen() {
   );
 
   useEffect(() => {
-  const user = getCurrentUser();
+    const user = getCurrentUser();
 
-  if (!user) return;
+    if (!user) return;
 
-  setCurrentChat(user.uid, chatId);
+    setCurrentChat(user.uid, chatId);
 
-  return () => {
-    setCurrentChat(user.uid, null);
-  };
-}, [chatId]);
+    return () => {
+      setCurrentChat(user.uid, null);
+    };
+  }, [chatId]);
 
-useEffect(() => {
+  useEffect(() => {
 
-  setActiveChat(chatId);
+    setActiveChat(chatId);
 
 
-  return () => {
-    setActiveChat(null);
-  };
+    return () => {
+      setActiveChat(null);
+    };
 
-}, [chatId]);
+  }, [chatId]);
 
   const [deleteCutoff, setDeleteCutoff] =
     useState(0);
@@ -253,6 +255,11 @@ useEffect(() => {
     hideProfile: false,
     canSend: true,
   });
+
+  const closeMessageOptions = () => {
+    setShowOptions(false);
+    setSelectedMessage(null);
+  };
 
 
   useEffect(() => {
@@ -479,11 +486,11 @@ useEffect(() => {
           voiceUrl: url,
           localUri: "",
           status: "sent",
-          uploadCompleted: true,  
+          uploadCompleted: true,
         }
       );
 
-      
+
       await updateLastMessage(chatId, {
         type: "voice",
         sender: message.sender,
@@ -547,6 +554,8 @@ useEffect(() => {
     }
 
   };
+
+
 
   useEffect(() => {
     console.log("ALL MESSAGES =>", allMessages);
@@ -652,7 +661,7 @@ useEffect(() => {
 
           renderItem={({ item, index }) => {
 
-          
+
             if (item.deletedFor?.[currentUserId]) {
               return null;
             }
@@ -680,6 +689,10 @@ useEffect(() => {
                 <TouchableOpacity
                   key={`${item.id}-${item.deletedForEveryone}-${item.type}`}
                   activeOpacity={0.8}
+                  style={[
+                    styles.messageRow,
+                    selectedMessage?.id === item.id && styles.selectedMessageRow,
+                  ]}
                   onLongPress={() => {
                     setSelectedMessage(item);
                     setShowOptions(true);
@@ -699,6 +712,26 @@ useEffect(() => {
                     onReply={(message) => {
                       setReplyTo(message);
                     }}
+                    onReaction={(message, emoji) => {
+                      const currentReaction =
+                        message.reactions?.[currentUserId];
+
+                      if (currentReaction === emoji) {
+                        removeReaction(
+                          chatId,
+                          message.id,
+                          currentUserId
+                        );
+                      } else {
+                        addReaction(
+                          chatId,
+                          message.id,
+                          currentUserId,
+                          emoji
+                        );
+                      }
+                    }}
+
                   />
                 </TouchableOpacity>
               </>
@@ -834,8 +867,8 @@ useEffect(() => {
                   sender: currentUserId,
                   receiver: otherUserId,
                   timestamp,
-                  // status: "sent",
-                  status: "sending",
+                  status: "sent",
+                  
                 };
 
                 if (replyTo) {
@@ -861,13 +894,7 @@ useEffect(() => {
                 }
                 setReplyTo(null);
 
-                const messageId = await sendMessage(chatId, messageData);
-
-                await updateMessageStatus(
-                  chatId,
-                  messageId,
-                  "sent"
-                );
+                await sendMessage(chatId, messageData);
 
                 setLocalMessages((prev) =>
                   prev.filter(m => m.clientId !== clientId)
@@ -990,13 +1017,17 @@ useEffect(() => {
 
         <MessageOptionsModal
           visible={showOptions}
-          onClose={() => setShowOptions(false)}
+          onClose={closeMessageOptions}
 
           onReply={() => {
             if (selectedMessage) {
               setReplyTo(selectedMessage);
             }
           }}
+
+          isDeletedMessage={
+            selectedMessage?.deletedForEveryone === true
+          }
 
           onCopy={async () => {
             if (selectedMessage) {
@@ -1019,25 +1050,26 @@ useEffect(() => {
           onDeleteEveryone={async () => {
             if (selectedMessage) {
               await deleteForEveryone(
-  chatId,
-  selectedMessage.id,
-);
+                chatId,
+                selectedMessage.id,
+              );
 
-setLocalMessages(prev =>
-  prev.filter(
-    m =>
-      m.id !== selectedMessage.id &&
-      m.clientId !== selectedMessage.clientId
-  )
-);
+              setLocalMessages(prev =>
+                prev.filter(
+                  m =>
+                    m.id !== selectedMessage.id &&
+                    m.clientId !== selectedMessage.clientId
+                )
+              );
 
-setShowOptions(false);
-setSelectedMessage(null);
+              setShowOptions(false);
+              setSelectedMessage(null);
             }
           }}
 
           canDeleteEveryone={
-            selectedMessage?.sender === currentUserId
+            selectedMessage?.sender === currentUserId &&
+            !selectedMessage?.deletedForEveryone
           }
 
 
@@ -1085,5 +1117,14 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
     paddingHorizontal: 10
-  }
+  },
+
+  messageRow: {
+    width: "100%",
+  },
+
+  selectedMessageRow: {
+    backgroundColor: "rgba(37, 99, 235, 0.08)",
+    borderRadius: 8,
+  },
 });

@@ -72,11 +72,11 @@ export default function ChatListScreen() {
     const navigation = useNavigation<any>();
     // const currentUser = getCurrentUser();
     const [currentUser, setCurrentUser] = useState(auth.currentUser);
-const [authReady, setAuthReady] = useState(false);
-    
+    const [authReady, setAuthReady] = useState(false);
 
 
-    
+
+
 
     const [chats, setChats] = useState<any[]>([]);
     const [myProfile, setMyProfile] = useState<any>(null);
@@ -91,43 +91,48 @@ const [authReady, setAuthReady] = useState(false);
         selectedChat !== null;
 
     const [typingDots, setTypingDots] =
-  React.useState(".");
+        React.useState(".");
 
 
-  useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-   
-
-    setCurrentUser(user);
-    setAuthReady(true);
-  });
-
-  return unsubscribe;
-}, []);
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
 
 
-  useEffect(() => {
-  console.log("INIT NOTIFICATION");
+            setCurrentUser(user);
+            setAuthReady(true);
+        });
 
-  async function initNotifications() {
-    console.log("STEP 1");
+        return unsubscribe;
+    }, []);
 
-    if (!currentUser) return;
 
-    console.log("USER =>", currentUser.uid);
+    useEffect(() => {
+        if (!authReady || !currentUser) return;
 
-    const token = await registerForPushNotifications();
+        let mounted = true;
 
-    console.log("TOKEN =>", token);
+        async function initNotifications() {
+            try {
+                console.log("INIT NOTIFICATION");
 
-    if (token) {
-      await saveFcmToken(currentUser.uid, token);
-      console.log("TOKEN SAVED");
-    }
-  }
+                const token = await registerForPushNotifications();
 
-  initNotifications();
-}, [currentUser]);
+                if (!mounted || !token) return;
+
+                await saveFcmToken(currentUser!.uid, token);
+
+                console.log("FCM TOKEN SAVED");
+            } catch (e) {
+                console.log("Notification Init Error", e);
+            }
+        }
+
+        initNotifications();
+
+        return () => {
+            mounted = false;
+        };
+    }, [authReady, currentUser]);
 
     useEffect(() => {
         const backAction = () => {
@@ -181,28 +186,28 @@ const [authReady, setAuthReady] = useState(false);
                                         c => c.otherUserId === uid
                                     );
 
-                               return {
-    id: getChatId(me, uid),
-    otherUserId: uid,
+                                return {
+                                    id: getChatId(me, uid),
+                                    otherUserId: uid,
 
-    name: user.name,
-    photo: user.photo,
+                                    name: user.name,
+                                    photo: user.photo,
 
-    iBlocked: old?.iBlocked || false,
-    blockedMe: old?.blockedMe || false,
+                                    iBlocked: old?.iBlocked || false,
+                                    blockedMe: old?.blockedMe || false,
 
-    lastMessage: old?.lastMessage || "",
-    lastTime: old?.lastTime || "",
-    lastTimestamp: old?.lastTimestamp || 0,
-    unread: old?.unread || 0,
-    typing: old?.typing || false,
-    recording: old?.recording || false,
-    online: old?.online || false,
-    lastSeen: old?.lastSeen || 0,
-    lastStatus: old?.lastStatus || "",
-    lastSender: old?.lastSender || "",
-    lastMessageObj: old?.lastMessageObj || null,
-};
+                                    lastMessage: old?.lastMessage || "",
+                                    lastTime: old?.lastTime || "",
+                                    lastTimestamp: old?.lastTimestamp || 0,
+                                    unread: old?.unread || 0,
+                                    typing: old?.typing || false,
+                                    recording: old?.recording || false,
+                                    online: old?.online || false,
+                                    lastSeen: old?.lastSeen || 0,
+                                    lastStatus: old?.lastStatus || "",
+                                    lastSender: old?.lastSender || "",
+                                    lastMessageObj: old?.lastMessageObj || null,
+                                };
                             });
 
                     });
@@ -218,30 +223,30 @@ const [authReady, setAuthReady] = useState(false);
 
 
     useEffect(() => {
-    console.log(
-        "PROFILE EFFECT USER =>",
-        getCurrentUser()?.uid
-    );
+        console.log(
+            "PROFILE EFFECT USER =>",
+            getCurrentUser()?.uid
+        );
 
-    const loadProfile = async () => {
-        const me = getCurrentUser()?.uid;
+        const loadProfile = async () => {
+            const me = getCurrentUser()?.uid;
 
-       
 
-        if (!me) {
-            console.log("PROFILE NOT LOADED");
-            return;
-        }
 
-        const profile = await getUserProfile(me);
+            if (!me) {
+                console.log("PROFILE NOT LOADED");
+                return;
+            }
 
-        
+            const profile = await getUserProfile(me);
 
-        setMyProfile(profile);
-    };
 
-    loadProfile();
-}, []);
+
+            setMyProfile(profile);
+        };
+
+        loadProfile();
+    }, []);
 
 
 
@@ -253,7 +258,7 @@ const [authReady, setAuthReady] = useState(false);
 
     }, [currentUser]);
 
- 
+
     useEffect(() => {
 
         const subscription =
@@ -290,80 +295,78 @@ const [authReady, setAuthReady] = useState(false);
     useEffect(() => {
         const unsubscribers = chats.map((chat) =>
             subscribeLastMessage(
-  chat.id,
-  currentUser!.uid,
-  (message) => {
-                if (!message) {
-                    setChats(old =>
-                        old.map(c =>
+                chat.id,
+                currentUser!.uid,
+                (message) => {
+                    if (!message) {
+                        setChats(old =>
+                            old.map(c =>
+                                c.id === chat.id
+                                    ? {
+                                        ...c,
+                                        lastMessage: "",
+                                        lastTime: "",
+                                        lastMessageObj: null,
+                                    }
+                                    : c
+                            )
+                        );
+
+                        return;
+                    }
+
+                    setChats((oldChats) =>
+                        oldChats.map((c) =>
                             c.id === chat.id
                                 ? {
                                     ...c,
-                                    lastMessage: "",
-                                    lastTime: "",
-                                    lastMessageObj: null,
+
+
+
+                                    lastMessage:
+                                        message.deletedForEveryone
+                                            ? (
+                                                message.sender === getCurrentUser()?.uid
+                                                    ? "You deleted this message"
+                                                    : "This message was deleted"
+                                            )
+                                            : message.replyTo
+                                                ? `↩ ${message.replyTo.sender === currentUser?.uid
+                                                    ? "You"
+                                                    : message.replyTo.senderName
+                                                }: ${message.type === "image"
+                                                    ? "📷 Photo"
+                                                    : message.type === "voice"
+                                                        ? "🎤 Voice message"
+                                                        : message.text
+                                                }`
+                                                : message.type === "image"
+                                                    ? "📷 Photo"
+                                                    : message.type === "voice"
+                                                        ? "🎤 Voice message"
+                                                        : message.text,
+
+                                    lastTime: formatChatListTime(
+                                        message.timestamp
+                                    ),
+
+                                    lastTimestamp: message.timestamp,
+                                    lastStatus: message.status,
+                                    lastSender: message.sender,
+                                    lastMessageObj: message,
+                                    // NEW
+                                    lastReaction:
+                                        message.reactions
+                                            ? {
+                                                emoji: Object.values(message.reactions)[0],
+                                                count: Object.keys(message.reactions).length,
+                                            }
+                                            : null,
                                 }
                                 : c
                         )
                     );
-
-                    return;
-                }
-
-                setChats((oldChats) =>
-                    oldChats.map((c) =>
-                        c.id === chat.id
-                            ? {
-                                ...c,
-
-
-
-                                lastMessage:
-message.deletedForEveryone
-    ? (
-        message.sender === getCurrentUser()?.uid
-          ? "You deleted this message"
-          : "This message was deleted"
-      )
-  : message.replyTo
-  ? `↩ ${
-      message.replyTo.sender === currentUser?.uid
-        ? "You"
-        : message.replyTo.senderName
-    }: ${
-      message.type === "image"
-        ? "📷 Photo"
-        : message.type === "voice"
-        ? "🎤 Voice message"
-        : message.text
-    }`
-  : message.type === "image"
-  ? "📷 Photo"
-  : message.type === "voice"
-  ? "🎤 Voice message"
-  : message.text,
-
-                                lastTime: formatChatListTime(
-                                    message.timestamp
-                                ),
-
-                                lastTimestamp: message.timestamp,
-                                lastStatus: message.status,
-                                lastSender: message.sender,
-                                lastMessageObj: message,
-                                // NEW
-          lastReaction:
-  message.reactions
-    ? {
-        emoji: Object.values(message.reactions)[0],
-        count: Object.keys(message.reactions).length,
-      }
-    : null,
-                            }
-                            : c
-                    )
-                );
-            })
+                })
         );
 
         return () => {
@@ -374,40 +377,40 @@ message.deletedForEveryone
 
     useEffect(() => {
 
-  const unsubscribers = chats.map(chat =>
+        const unsubscribers = chats.map(chat =>
 
-    subscribeLastReaction(
+            subscribeLastReaction(
 
-      chat.id,
+                chat.id,
 
-      reaction => {
+                reaction => {
 
-        setChats(old =>
+                    setChats(old =>
 
-          old.map(c =>
+                        old.map(c =>
 
-            c.id === chat.id
-              ? {
-                  ...c,
-                  lastReaction: reaction,
+                            c.id === chat.id
+                                ? {
+                                    ...c,
+                                    lastReaction: reaction,
+                                }
+                                : c
+
+                        )
+
+                    );
+
                 }
-              : c
 
-          )
+            )
 
         );
 
-      }
+        return () =>
 
-    )
+            unsubscribers.forEach(u => u());
 
-  );
-
-  return () =>
-
-    unsubscribers.forEach(u => u());
-
-}, [chats.length]);
+    }, [chats.length]);
 
     useEffect(() => {
         const unsubscribers = chats.map((chat) =>
@@ -469,30 +472,30 @@ message.deletedForEveryone
         };
     }, [chats.length]);
 
-   useEffect(() => {
-  const unsubscribers = chats.map((chat) =>
-    subscribeTyping(
-      chat.otherUserId,
-      (state) => {
-        setChats((oldChats) =>
-          oldChats.map((c) =>
-            c.id === chat.id
-              ? {
-                  ...c,
-                  typing: state.typing,
-                  recording: state.recording,
+    useEffect(() => {
+        const unsubscribers = chats.map((chat) =>
+            subscribeTyping(
+                chat.otherUserId,
+                (state) => {
+                    setChats((oldChats) =>
+                        oldChats.map((c) =>
+                            c.id === chat.id
+                                ? {
+                                    ...c,
+                                    typing: state.typing,
+                                    recording: state.recording,
+                                }
+                                : c
+                        )
+                    );
                 }
-              : c
-          )
+            )
         );
-      }
-    )
-  );
 
-  return () => {
-    unsubscribers.forEach((u) => u());
-  };
-}, [chats.length]);
+        return () => {
+            unsubscribers.forEach((u) => u());
+        };
+    }, [chats.length]);
 
 
     useEffect(() => {
@@ -551,65 +554,65 @@ message.deletedForEveryone
     }, [currentUser]);
 
     useEffect(() => {
-  const me = getCurrentUser()?.uid;
+        const me = getCurrentUser()?.uid;
 
-  if (!me) return;
+        if (!me) return;
 
-  const unsubscribers = chats.map(chat =>
-    subscribePrivacy(
-      me,
-      chat.otherUserId,
-      privacy => {
-        setChats(oldChats =>
-          oldChats.map(c =>
-            c.id === chat.id
-              ? {
-                  ...c,
-                  iBlocked: privacy.iBlocked,
-                  blockedMe: privacy.blockedMe,
+        const unsubscribers = chats.map(chat =>
+            subscribePrivacy(
+                me,
+                chat.otherUserId,
+                privacy => {
+                    setChats(oldChats =>
+                        oldChats.map(c =>
+                            c.id === chat.id
+                                ? {
+                                    ...c,
+                                    iBlocked: privacy.iBlocked,
+                                    blockedMe: privacy.blockedMe,
+                                }
+                                : c
+                        )
+                    );
                 }
-              : c
-          )
+            )
         );
-      }
-    )
-  );
 
-  return () => {
-    unsubscribers.forEach(u => u());
-  };
-}, [chats.length]);
+        return () => {
+            unsubscribers.forEach(u => u());
+        };
+    }, [chats.length]);
 
 
 
-React.useEffect(() => {
-  const interval = setInterval(() => {
-    setTypingDots((old) => {
-      if (old === ".") return "..";
-      if (old === "..") return "...";
-      return ".";
-    });
-  }, 400);
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            setTypingDots((old) => {
+                if (old === ".") return "..";
+                if (old === "..") return "...";
+                return ".";
+            });
+        }, 400);
 
-  return () => clearInterval(interval);
-}, []);
+        return () => clearInterval(interval);
+    }, []);
 
-if (!authReady) {
-  return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <ActivityIndicator
-        size="large"
-        color="#2563EB"
-      />
-    </SafeAreaView>
-  );
-}
+    if (!authReady) {
+        return (
+            <SafeAreaView
+                style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                }}
+            >
+                <ActivityIndicator
+                    size="large"
+                    color="#2563EB"
+                />
+            </SafeAreaView>
+        );
+    }
     return (
         <SafeAreaView style={styles.container}>
 
@@ -693,34 +696,34 @@ if (!authReady) {
 
                 ) : (
 
-                   <>
-  <View
-    style={{
-      flex: 1,
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom:8,
-    }}
-  >
-    <Image
-      source={require("../../assets/branding/logo-horizontal.png")}
-      style={styles.logo}
-    />
+                    <>
+                        <View
+                            style={{
+                                flex: 1,
+                                flexDirection: "row",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 8,
+                            }}
+                        >
+                            <Image
+                                source={require("../../assets/branding/logo-horizontal.png")}
+                                style={styles.logo}
+                            />
 
-    <TouchableOpacity
-      style={styles.settingButton}
-      activeOpacity={0.8}
-      onPress={() => navigation.navigate("Settings")}
-    >
-      <Ionicons
-        name="settings-outline"
-        size={26}
-        color="#2563EB"
-      />
-    </TouchableOpacity>
-  </View>
-</>
+                            <TouchableOpacity
+                                style={styles.settingButton}
+                                activeOpacity={0.8}
+                                onPress={() => navigation.navigate("Settings")}
+                            >
+                                <Ionicons
+                                    name="settings-outline"
+                                    size={26}
+                                    color="#2563EB"
+                                />
+                            </TouchableOpacity>
+                        </View>
+                    </>
 
                 )}
 
@@ -743,8 +746,8 @@ if (!authReady) {
                     onChangeText={setSearch}
                     style={styles.searchInput}
                     underlineColorAndroid="transparent"
-  selectionColor="#2563EB"
-  cursorColor="#2563EB"
+                    selectionColor="#2563EB"
+                    cursorColor="#2563EB"
                 />
 
                 {search.length > 0 && (
@@ -763,29 +766,29 @@ if (!authReady) {
 
             <FlatList
                 contentContainerStyle={styles.listContent}
-               data={[...chats]
+                data={[...chats]
 
-    .filter(chat =>
-        chat.lastMessageObj ||
-        chat.lastMessage !== "" ||
-        chat.lastTimestamp !== 0
-    )
+                    .filter(chat =>
+                        chat.lastMessageObj ||
+                        chat.lastMessage !== "" ||
+                        chat.lastTimestamp !== 0
+                    )
 
-    .filter(chat =>
-        !hiddenChats[chat.id]
-    )
+                    .filter(chat =>
+                        !hiddenChats[chat.id]
+                    )
 
-    .filter(chat =>
-        chat.name
-            .toLowerCase()
-            .includes(search.toLowerCase())
-    )
+                    .filter(chat =>
+                        chat.name
+                            .toLowerCase()
+                            .includes(search.toLowerCase())
+                    )
 
-    .sort((a, b) =>
-        (b.lastTimestamp || 0) -
-        (a.lastTimestamp || 0)
-    )
-}
+                    .sort((a, b) =>
+                        (b.lastTimestamp || 0) -
+                        (a.lastTimestamp || 0)
+                    )
+                }
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <TouchableOpacity
@@ -827,35 +830,35 @@ if (!authReady) {
                     >
                         {item.iBlocked || item.blockedMe ? (
 
-<View style={styles.avatar}>
-  <Ionicons
-    name="person"
-    size={26}
-    color="#FFF"
-  />
-</View>
+                            <View style={styles.avatar}>
+                                <Ionicons
+                                    name="person"
+                                    size={26}
+                                    color="#FFF"
+                                />
+                            </View>
 
-) : item.photo ? (
+                        ) : item.photo ? (
 
-<Image
-  source={{ uri: item.photo }}
-  style={styles.avatar}
-/>
+                            <Image
+                                source={{ uri: item.photo }}
+                                style={styles.avatar}
+                            />
 
-) : (
+                        ) : (
 
-<View style={styles.avatar}>
-  <Text style={styles.avatarText}>
-    {item.name.charAt(0).toUpperCase()}
-  </Text>
-</View>
+                            <View style={styles.avatar}>
+                                <Text style={styles.avatarText}>
+                                    {item.name.charAt(0).toUpperCase()}
+                                </Text>
+                            </View>
 
-)}
+                        )}
                         {!item.iBlocked &&
- !item.blockedMe &&
- item.online && (
-    <View style={styles.onlineDot} />
-)}
+                            !item.blockedMe &&
+                            item.online && (
+                                <View style={styles.onlineDot} />
+                            )}
 
                         <View style={styles.chatContent}>
                             <View style={styles.topRow}>
@@ -886,159 +889,158 @@ if (!authReady) {
                                     }}
                                 >
 
-                                   {
-  item.lastMessageObj?.sender === getCurrentUser()?.uid &&
-  !item.lastMessageObj?.deletedForEveryone &&
-  !item.typing &&
-  !item.recording && (
-    <>
-      {item.lastMessageObj.status === "sending" && (
-        <Ionicons
-          name="time-outline"
-          size={14}
-          color="#94A3B8"
-          style={{ marginRight: 4 }}
-        />
-      )}
+                                    {
+                                        item.lastMessageObj?.sender === getCurrentUser()?.uid &&
+                                        !item.lastMessageObj?.deletedForEveryone &&
+                                        !item.typing &&
+                                        !item.recording && (
+                                            <>
+                                                {item.lastMessageObj.status === "sending" && (
+                                                    <Ionicons
+                                                        name="time-outline"
+                                                        size={14}
+                                                        color="#94A3B8"
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                )}
 
-      {item.lastMessageObj.status === "sent" && (
-        <Ionicons
-          name="checkmark"
-          size={15}
-          color="#94A3B8"
-          style={{ marginRight: 4 }}
-        />
-      )}
+                                                {item.lastMessageObj.status === "sent" && (
+                                                    <Ionicons
+                                                        name="checkmark"
+                                                        size={15}
+                                                        color="#94A3B8"
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                )}
 
-      {item.lastMessageObj.status === "delivered" && (
-        <Ionicons
-          name="checkmark-done"
-          size={15}
-          color="#94A3B8"
-          style={{ marginRight: 4 }}
-        />
-      )}
+                                                {item.lastMessageObj.status === "delivered" && (
+                                                    <Ionicons
+                                                        name="checkmark-done"
+                                                        size={15}
+                                                        color="#94A3B8"
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                )}
 
-      {item.lastMessageObj.status === "read" && (
-        <Ionicons
-          name="checkmark-done"
-          size={15}
-          color="#3B82F6"
-          style={{ marginRight: 4 }}
-        />
-      )}
+                                                {item.lastMessageObj.status === "read" && (
+                                                    <Ionicons
+                                                        name="checkmark-done"
+                                                        size={15}
+                                                        color="#3B82F6"
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                )}
 
-      {item.lastMessageObj.status === "failed" && (
-        <Ionicons
-          name="alert-circle"
-          size={15}
-          color="#EF4444"
-          style={{ marginRight: 4 }}
-        />
-      )}
-    </>
-  )
-}
+                                                {item.lastMessageObj.status === "failed" && (
+                                                    <Ionicons
+                                                        name="alert-circle"
+                                                        size={15}
+                                                        color="#EF4444"
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                )}
+                                            </>
+                                        )
+                                    }
 
                                     <View
-  style={{
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  }}
->
-  {!item.typing && item.lastMessageObj?.deletedForEveryone && (
-    <Ionicons
-      name="remove-circle-outline"
-      size={14}
-      color="#7C8798"
-      style={{ marginRight: 4 }}
-    />
-  )}
+                                        style={{
+                                            flexDirection: "row",
+                                            alignItems: "center",
+                                            flex: 1,
+                                        }}
+                                    >
+                                        {!item.typing && item.lastMessageObj?.deletedForEveryone && (
+                                            <Ionicons
+                                                name="ban-outline"
+                                                size={14}
+                                                color="#7C8798"
+                                                style={{ marginRight: 4 }}
+                                            />
+                                        )}
 
-  {item.recording ? (
-  <View
-    style={{
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    }}
-  >
-    <Ionicons
-      name="mic"
-      size={13}
-      color="#EF4444"
-      style={{ marginRight: 4 }}
-    />
+                                        {item.recording ? (
+                                            <View
+                                                style={{
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    flex: 1,
+                                                }}
+                                            >
+                                                <Ionicons
+                                                    name="mic"
+                                                    size={13}
+                                                    color="#EF4444"
+                                                    style={{ marginRight: 4 }}
+                                                />
 
-    <Text
-      style={{
-        color: "#EF4444",
-        fontStyle: "italic",
-        fontSize: 13,
-        fontWeight: "500",
-      }}
-    >
-      Recording audio...
-    </Text>
-  </View>
-) : item.typing ? (
+                                                <Text
+                                                    style={{
+                                                        color: "#EF4444",
+                                                        fontStyle: "italic",
+                                                        fontSize: 13,
+                                                        fontWeight: "500",
+                                                    }}
+                                                >
+                                                    Recording audio...
+                                                </Text>
+                                            </View>
+                                        ) : item.typing ? (
 
-  <View
-    style={{
-      flexDirection: "row",
-      alignItems: "center",
-      flex: 1,
-    }}
-  >
-    <Text
-      style={{
-        color: "#22C55E",
-        fontStyle: "italic",
-        fontSize: 13,
-        fontWeight: "500",
-      }}
-    >
-      Typing{typingDots}
-    </Text>
-  </View>
-) : (
-  <Text
-    numberOfLines={1}
-    style={[
-      styles.message,
+                                            <View
+                                                style={{
+                                                    flexDirection: "row",
+                                                    alignItems: "center",
+                                                    flex: 1,
+                                                }}
+                                            >
+                                                <Text
+                                                    style={{
+                                                        color: "#22C55E",
+                                                        fontStyle: "italic",
+                                                        fontSize: 13,
+                                                        fontWeight: "500",
+                                                    }}
+                                                >
+                                                    Typing{typingDots}
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            <Text
+                                                numberOfLines={1}
+                                                style={[
+                                                    styles.message,
 
-      item.lastMessageObj?.deletedForEveryone &&
-        styles.deletedMessage,
+                                                    item.lastMessageObj?.deletedForEveryone &&
+                                                    styles.deletedMessage,
 
-      item.unread > 0 &&
-        !item.lastMessageObj?.deletedForEveryone && {
-          fontWeight: "700",
-          color: "#111827",
-        },
+                                                    item.unread > 0 &&
+                                                    !item.lastMessageObj?.deletedForEveryone && {
+                                                        fontWeight: "700",
+                                                        color: "#111827",
+                                                    },
 
-      { flex: 1 },
-    ]}
+                                                    { flex: 1 },
+                                                ]}
 
 
-    
-  >
-   {
-  item.lastReaction
-    ? `${item.lastReaction.emoji} Reacted to ${
-        item.lastReaction.messageType === "image"
-          ? "📷 Photo"
-          : item.lastReaction.messageType === "voice"
-          ? "🎤 Voice message"
-          : `"${item.lastReaction.messageText}"`
-      }`
-    : item.lastMessageObj
-    ? item.lastMessage
-    : "No messages yet"
-}
-  </Text>
-)}
-</View>
+
+                                            >
+                                                {
+                                                    item.lastReaction
+                                                        ? `${item.lastReaction.emoji} Reacted to ${item.lastReaction.messageType === "image"
+                                                            ? "📷 Photo"
+                                                            : item.lastReaction.messageType === "voice"
+                                                                ? "🎤 Voice message"
+                                                                : `"${item.lastReaction.messageText}"`
+                                                        }`
+                                                        : item.lastMessageObj
+                                                            ? item.lastMessage
+                                                            : "No messages yet"
+                                                }
+                                            </Text>
+                                        )}
+                                    </View>
 
                                 </View>
 
@@ -1130,28 +1132,28 @@ const styles = StyleSheet.create({
     },
 
 
-header: {
-  flexDirection: "row",
-  alignItems: "center",
-  paddingHorizontal: 16,
-  paddingVertical: 10,
-  backgroundColor: "#F8FAFC",
-},
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        backgroundColor: "#F8FAFC",
+    },
 
-logo: {
-  width: 160,
-  height: 50,
-  resizeMode: "contain",
-},
+    logo: {
+        width: 160,
+        height: 50,
+        resizeMode: "contain",
+    },
 
-settingButton: {
-  width: 42,
-  height: 42,
-  borderRadius: 21,
-  justifyContent: "center",
-  alignItems: "center",
-  backgroundColor: "#EFF6FF",
-},
+    settingButton: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#EFF6FF",
+    },
 
 
 
@@ -1442,7 +1444,7 @@ settingButton: {
 
         elevation: 6,
 
-
+        marginBottom: 50,
 
 
         shadowColor: "#000",
@@ -1514,12 +1516,12 @@ settingButton: {
         paddingHorizontal: 10,
     },
 
- 
-   brandContainer: {
-  flex: 1,
-  flexDirection: "row",
-  alignItems: "center",
-},
+
+    brandContainer: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+    },
 
     brandText: {
         marginLeft: 12,

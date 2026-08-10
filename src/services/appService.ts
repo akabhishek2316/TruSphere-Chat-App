@@ -19,17 +19,15 @@ let appStateSubscription: { remove: () => void } | null = null;
 export function startAppServices() {
   onAuthStateChanged(auth, async (user) => {
 
-     console.log("AUTH OBJECT =>", user);
+    console.log("AUTH OBJECT =>", user);
     currentUser = user;
-
-    
 
     if (!user) {
       stopMessageSync();
       return;
     }
 
-     console.log("UID =>", user.uid);
+    console.log("UID =>", user.uid);
 
     console.log("AUTH RESTORED =>", user.uid);
 
@@ -66,8 +64,6 @@ export function stopAppServices() {
 
   appStateSubscription?.remove();
 }
-
-// temp code
 
 onAuthStateChanged(auth, (user) => {
   console.log("========== AUTH CALLBACK ==========");

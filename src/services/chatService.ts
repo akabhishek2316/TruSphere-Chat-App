@@ -34,109 +34,188 @@ export async function sendMessage(
   message: Omit<ChatMessage, "id">
 ): Promise<string> {
 
-const blocked = await isBlocked(
-  message.receiver,
-  message.sender
-);
-
-if (blocked) {
-  throw new Error(
-    "You are blocked by this user."
+  const blocked = await isBlocked(
+    message.receiver,
+    message.sender
   );
-}
+
+  if (blocked) {
+    throw new Error(
+      "You are blocked by this user."
+    );
+  }
 
   try {
+
     const messagesRef = ref(
-  database,
-  `chatRooms/${chatId}/messages`
-);
+      database,
+      `chatRooms/${chatId}/messages`
+    );
 
     const newRef = push(messagesRef);
-    const messageId = newRef.key;
-    console.log("New Key:", newRef.key);
 
+    const messageId = newRef.key;
+
+    if (!messageId) {
+      throw new Error("Failed to generate message id");
+    }
 
     const disappearing =
-  await getDisappearingMessages(chatId);
+      await getDisappearingMessages(chatId);
 
-let expiresAt = null;
+    let expiresAt: number | null = null;
 
-if (
-  disappearing.enabled &&
-  disappearing.duration
+    if (
+      disappearing.enabled &&
+      disappearing.duration
+    ) {
+      expiresAt =
+        Date.now() +
+        disappearing.duration;
+    }
+
+    // =====================================
+    // MAIN WRITE
+    // =====================================
+
+    await set(newRef, {
+      id: messageId,
+      ...message,
+
+      status:
+        message.type === "text"
+          ? "sent"
+          : message.status,
+
+      expiresAt,
+
+      readBy: {
+        [message.sender]: true,
+      },
+    });
+
+    console.log(
+      "MESSAGE SAVED =>",
+      messageId
+    );
+
+    // =====================================
+    // BACKGROUND TASKS
+    // =====================================
+
+    Promise.all([
+
+      update(
+        ref(
+          database,
+          `userChats/${message.sender}`
+        ),
+        {
+          [chatId]: true,
+        }
+      ),
+
+      update(
+        ref(
+          database,
+          `userChats/${message.receiver}`
+        ),
+        {
+          [chatId]: true,
+        }
+      ),
+
+      clearDeleteState(
+        message.sender,
+        chatId
+      ),
+
+      clearDeleteState(
+        message.receiver,
+        chatId
+      ),
+
+      message.type === "text"
+        ? updateLastMessage(chatId, {
+            type: "text",
+            text: message.text,
+            sender: message.sender,
+            timestamp: message.timestamp,
+          })
+        : Promise.resolve(),
+
+    ]).catch((e) =>
+      console.log(
+        "Background update error =>",
+        e
+      )
+    );
+
+    // =====================================
+    // PUSH NOTIFICATION
+    // =====================================
+
+    sendMessageNotification(
+      chatId,
+      messageId,
+      message
+    ).catch((e) =>
+      console.log(
+        "Push Notification Error =>",
+        e
+      )
+    );
+
+    return messageId;
+
+  } catch (e) {
+
+    console.log(
+      "Firebase write failed =>",
+      e
+    );
+
+    throw e;
+  }
+}
+
+
+async function sendMessageNotification(
+  chatId: string,
+  messageId: string,
+  message: Omit<ChatMessage, "id">
 ) {
-  expiresAt =
-    Date.now() +
-    disappearing.duration;
-}
 
-await set(newRef,{
-   id: newRef.key,
-   ...message,
-   expiresAt,
-
-   readBy: {
-      [message.sender]: true,
-   },
-});
-
-await update(
-  ref(database, `userChats/${message.sender}`),
-  {
-    [chatId]: true,
-  }
-);
-
-await update(
-  ref(database, `userChats/${message.receiver}`),
-  {
-    [chatId]: true,
-  }
-);
-
-await clearDeleteState(
-  message.sender,
-  chatId
-);
-
-await clearDeleteState(
-  message.receiver,
-  chatId
-);
-
-
-
-if (message.type === "text") {
-  await updateLastMessage(chatId, {
-    type: "text",
-    text: message.text,
-    sender: message.sender,
-    timestamp: message.timestamp,
-  });
-}
-
-try {
   const currentChat =
-  await getCurrentChat(message.receiver);
+    await getCurrentChat(
+      message.receiver
+    );
 
-const token =
-  await getUserFcmToken(message.receiver);
+  const token =
+    await getUserFcmToken(
+      message.receiver
+    );
 
-  console.log("Receiver Token =>", token);
+  if (
+    !token ||
+    currentChat === chatId
+  ) {
+    return;
+  }
 
-if (
-  token &&
-  currentChat !== chatId
-) {
   const senderProfile =
-    await getUserProfile(message.sender);
+    await getUserProfile(
+      message.sender
+    );
 
   const senderName =
-    senderProfile?.name || "New Message";
+    senderProfile?.name ||
+    "New Message";
 
   let body = "";
 
   switch (message.type) {
+
     case "text":
       body = message.text || "";
       break;
@@ -158,23 +237,11 @@ if (
     senderName,
     body,
     {
- chatId,
- messageId: newRef.key,
- senderId: message.sender,
-}
+      chatId,
+      messageId,
+      senderId: message.sender,
+    }
   );
-}
-} catch (e) {
-  console.log("Push Notification Error =>", e);
-}
-
-console.log("Firebase write success");
-
-return newRef.key;
-  } catch (e) {
-    console.log("Firebase write failed", e);
-    throw e;
-  }
 }
 
 export async function updateMessage(
@@ -248,25 +315,6 @@ export function subscribeMessages(
   return unsubscribe;
 }
 
-// export async function markDelivered(
-//   chatId: string,
-//   messageId: string
-// ) {
-
-//   console.log("MARK DELIVERED FUNCTION");
-
-//   await update(
-//     ref(
-//       database,
-//       `chatRooms/${chatId}/messages/${messageId}`
-//     ),
-//     {
-//       status: "delivered",
-//     }
-//   );
-
-//   console.log("DATABASE UPDATED");
-// }
 
 export async function markDelivered(
   chatId: string,
@@ -558,7 +606,7 @@ const lastVisible = [...messages]
       return false;
     }
 
-    // Delete for Everyone ko ignore MAT karo
+    
     return true;
   });
 

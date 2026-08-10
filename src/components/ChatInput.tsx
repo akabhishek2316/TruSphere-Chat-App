@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 
 
@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Keyboard,
+  BackHandler,
 
 } from "react-native";
 
@@ -21,7 +23,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Keyboard } from "react-native";
+
 import { UserId } from "../types/chat";
 
 import VoiceRecorder from "./VoiceRecorder";
@@ -39,7 +41,7 @@ type Props = {
 
   onSend?: (message: string) => void;
   onSendVoice?: (
-    // voiceUrl: string,
+   
     localUri: string,
     duration: number
   ) => void;
@@ -62,6 +64,14 @@ export default function ChatInput({
   onCancelReply,
 }: Props) {
   const [message, setMessage] = useState("");
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const inputRef = useRef<TextInput>(null);
+  const emojiHeight = useSharedValue(0);
+  const emojiOpacity = useSharedValue(0);
+
+
   const [recording, setRecording] = useState(false);
   const [voiceUri, setVoiceUri] =
     useState<string | null>(null);
@@ -74,9 +84,80 @@ export default function ChatInput({
   const [playing, setPlaying] =
     useState(false);
 
+  const emojis = [
+    "😀", "😂", "🤣", "😊", "😍", "🥰",
+    "😘", "😎", "🤩", "😭", "😢", "😡",
+    "🤔", "😮", "😱", "🥳", "🤗", "👍",
+    "👎", "👏", "🙏", "❤️", "🧡", "💛",
+    "💚", "💙", "💜", "🔥", "✨", "🎉",
+    "💯", "😂", "😇", "😉", "😴", "🤝",
+  ];
+
+
+  const toggleEmojiPicker = () => {
+    if (showEmojiPicker) {
+      
+
+      emojiOpacity.value = withTiming(0, {
+        duration: 140,
+      });
+
+      emojiHeight.value = withTiming(
+        0,
+        {
+          duration: 220,
+        }
+      );
+
+      setTimeout(() => {
+        setShowEmojiPicker(false);
+
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
+      }, 200);
+
+    } else {
+      
+
+      Keyboard.dismiss();
+
+      setShowEmojiPicker(true);
+
+      requestAnimationFrame(() => {
+        emojiHeight.value = withTiming(230, {
+          duration: 260,
+        });
+
+        emojiOpacity.value = withTiming(1, {
+          duration: 180,
+        });
+      });
+    }
+  };
+
+
+  const emojiAnimatedStyle = useAnimatedStyle(() => ({
+    height: emojiHeight.value,
+    opacity: emojiOpacity.value,
+  }));
+
+  const handleEmojiBackspace = () => {
+    setMessage((prev) => {
+      if (!prev) return prev;
+
+      return Array.from(prev).slice(0, -1).join("");
+    });
+  };
+
+  const handleEmojiPress = (emoji: string) => {
+    setMessage((prev) => prev + emoji);
+  };
+
   useEffect(() => {
     onTyping?.(message.trim().length > 0);
   }, [message, onTyping]);
+
 
   useEffect(() => {
 
@@ -89,6 +170,39 @@ export default function ChatInput({
     );
 
   }, [message, recording]);
+
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (showEmojiPicker) {
+          
+          emojiOpacity.value = withTiming(0, {
+            duration: 120,
+          });
+
+          emojiHeight.value = withTiming(0, {
+            duration: 180,
+          });
+
+          setTimeout(() => {
+            setShowEmojiPicker(false);
+          }, 170);
+
+          return true; 
+        }
+
+       
+        return false;
+      }
+    );
+
+    return () => {
+      backHandler.remove();
+    };
+  }, [showEmojiPicker]);
+
 
   const handleSend = () => {
     const text = message.trim();
@@ -104,24 +218,7 @@ export default function ChatInput({
 
   const wave = useSharedValue(0.4);
 
-  // useEffect(() => {
-  //   if (recording) {
-  //     wave.value = withRepeat(
-  //       withSequence(
-  //         withTiming(1, { duration: 350 }),
-  //         withTiming(0.4, { duration: 350 })
-  //       ),
-  //       -1,
-  //       true
-  //     );
-  //   } else {
-  //     wave.value = 0.4;
-  //   }
-  // }, [recording]);
 
-  // const waveStyle = useAnimatedStyle(() => ({
-  //   transform: [{ scaleY: wave.value }],
-  // }));
 
 
   async function playVoice() {
@@ -170,6 +267,8 @@ export default function ChatInput({
 
   return (
     <View style={styles.wrapper}>
+
+
 
       {
         replyTo && (
@@ -224,10 +323,15 @@ export default function ChatInput({
               ]}
               activeOpacity={0.7}
               disabled={recording}
+              onPress={toggleEmojiPicker}
             >
               <Ionicons
-                name="happy-outline"
-                size={32}
+                name={
+                  showEmojiPicker
+                    ? "keypad-outline"
+                    : "happy-outline"
+                }
+                size={28}
                 color={Colors.primary}
               />
             </TouchableOpacity>
@@ -261,30 +365,36 @@ export default function ChatInput({
                   Recording...
                 </Text>
 
-                {/* <View style={styles.waveContainer}>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Animated.View
-                      key={i}
-                      style={[
-                        styles.waveBar,
-                        waveStyle,
-                        {
-                          height: 10 + i * 4,
-                        },
-                      ]}
-                    />
-                  ))}
-                </View> */}
-
               </View>
             ) : (
               <TextInput
+                ref={inputRef}
                 placeholder="Type a message..."
                 placeholderTextColor="#94A3B8"
                 value={message}
                 onChangeText={setMessage}
                 multiline
+                onFocus={() => {
+                  if (showEmojiPicker) {
+                    emojiOpacity.value = withTiming(0, {
+                      duration: 120,
+                    });
+
+                    emojiHeight.value = withTiming(
+                      0,
+                      {
+                        duration: 180,
+                      }
+                    );
+
+                    setTimeout(() => {
+                      setShowEmojiPicker(false);
+                    }, 170);
+                  }
+                }}
                 editable={!recording}
+                autoCorrect={false}
+                spellCheck={false}
                 selectTextOnFocus={!recording}
                 style={styles.input}
                 textAlignVertical="center"
@@ -408,6 +518,49 @@ export default function ChatInput({
         )}
 
       </View>
+
+      {showEmojiPicker && (
+        <Animated.View
+          style={[
+            styles.emojiPicker,
+            emojiAnimatedStyle,
+          ]}
+        >
+          <View style={styles.emojiContent}>
+
+            <View style={styles.emojiGrid}>
+              {emojis.map((emoji, index) => (
+                <TouchableOpacity
+                  key={`${emoji}-${index}`}
+                  style={styles.emojiItem}
+                  activeOpacity={0.6}
+                  onPress={() => {
+                    setMessage((prev) => prev + emoji);
+                  }}
+                >
+                  <Text style={styles.emojiText}>
+                    {emoji}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={styles.emojiBackspace}
+              activeOpacity={0.7}
+              onPress={handleEmojiBackspace}
+            >
+              <Ionicons
+                name="backspace-outline"
+                size={25}
+                color="#475569"
+              />
+            </TouchableOpacity>
+
+          </View>
+        </Animated.View>
+      )}
+
 
     </View>
 
@@ -611,6 +764,76 @@ const styles = StyleSheet.create({
   },
 
 
+  emojiPicker: {
+    overflow: "hidden",
+
+    backgroundColor: "#FFFFFF",
+
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+
+    marginTop: 4,
+
+    borderRadius: 12,
+
+    elevation: 3,
+
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+  },
+
+  emojiContent: {
+    flex: 1,
+
+    position: "relative",
+
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+
+  emojiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    borderRadius: 12,
+    paddingRight: 52,
+  },
+
+  emojiItem: {
+    width: "12.5%",
+    height: 42,
+
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  emojiText: {
+    fontSize: 25,
+  },
+
+  emojiBackspace: {
+    position: "absolute",
+
+    right: 10,
+    bottom: 10,
+
+    width: 44,
+    height: 44,
+
+    borderRadius: 22,
+
+    backgroundColor: "#E2E8F0",
+
+    justifyContent: "center",
+    alignItems: "center",
+
+    elevation: 2,
+  },
 
 
 });
