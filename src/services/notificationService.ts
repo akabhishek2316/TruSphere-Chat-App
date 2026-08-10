@@ -133,66 +133,15 @@ let unsubscribeMessage: (() => void) | null = null;
 setBackgroundMessageHandler(
   getMessaging(),
   async (remoteMessage) => {
-    console.log("========== BACKGROUND FCM ==========");
-    console.log(
-      "BACKGROUND DATA =>",
-      remoteMessage.data
+    console.log("BACKGROUND FCM MESSAGE =>", remoteMessage);
+
+    const title = String(
+      remoteMessage.data?.title ?? "New Message"
     );
 
-    const chatId =
-      String(remoteMessage.data?.chatId ?? "");
-
-    const messageId =
-      String(remoteMessage.data?.messageId ?? "");
-
-    const title =
-      String(
-        remoteMessage.data?.title ??
-        "New Message"
-      );
-
-    const body =
-      String(
-        remoteMessage.data?.body ??
-        ""
-      );
-
-    // =====================================
-    // MARK MESSAGE AS DELIVERED
-    // =====================================
-
-    if (chatId && messageId) {
-      try {
-        console.log(
-          "BACKGROUND MARK DELIVERED =>",
-          chatId,
-          messageId
-        );
-
-        await markDelivered(
-          chatId,
-          messageId
-        );
-
-        console.log(
-          "BACKGROUND DELIVERED SUCCESS"
-        );
-
-      } catch (e) {
-        console.log(
-          "BACKGROUND DELIVERED ERROR =>",
-          e
-        );
-      }
-    } else {
-      console.log(
-        "MISSING chatId/messageId"
-      );
-    }
-
-    // =====================================
-    // SHOW LOCAL NOTIFICATION
-    // =====================================
+    const body = String(
+      remoteMessage.data?.body ?? ""
+    );
 
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -203,12 +152,9 @@ setBackgroundMessageHandler(
       },
       trigger: null,
     });
-
-    console.log(
-      "BACKGROUND LOCAL NOTIFICATION SHOWN"
-    );
   }
 );
+
 
 export function startForegroundNotificationListener() {
 
