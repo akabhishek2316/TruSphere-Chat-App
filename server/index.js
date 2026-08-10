@@ -78,24 +78,7 @@ app.post("/sendNotification", async (req, res) => {
 
 console.log("Notification Sent =>", response);
 
-const chatId = String(data?.chatId || "");
-const messageId = String(data?.messageId || "");
 
-if (chatId && messageId) {
-  await admin
-    .database()
-    .ref(`chatRooms/${chatId}/messages/${messageId}`)
-    .update({
-      status: "delivered",
-      deliveredAt: Date.now(),
-    });
-
-  console.log(
-    "MESSAGE DELIVERED =>",
-    chatId,
-    messageId
-  );
-}
 
 res.json({
   success: true,
