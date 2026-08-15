@@ -16,8 +16,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { UserId } from "../types/chat";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { signOut } from "@react-native-firebase/auth";
-import { auth } from "../services/firebase";
+import { getDeviceId } from "../services/deviceService";
+
+import {
+  createSession,
+} from "../services/sessionService";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
 import { register } from "../services/authService";
@@ -212,7 +215,7 @@ if (usernameStatus !== "available") {
     try {
       setLoading(true);
 
-      const result = await register(
+ const result = await register(
   email.trim(),
   password
 );
@@ -223,24 +226,25 @@ await createUserProfile(result.user.uid, {
   email: email.trim(),
 });
 
+// Create session for this device
+const deviceId = await getDeviceId();
 
+const sessionId = await createSession(
+  result.user.uid,
+  deviceId
+);
 
+// Save session locally
+await AsyncStorage.setItem(
+  "SESSION_ID",
+  sessionId
+);
 
-
-
-await signOut(auth);
-
-      Alert.alert(
-        "Success",
-        "Account Created Successfully",
-        [
-          {
-            text: "OK",
-            onPress: () =>
-              navigation.replace("Login"),
-          },
-        ]
-      );
+// User is already authenticated after registration
+navigation.reset({
+  index: 0,
+  routes: [{ name: "ChatList" }],
+});
     } catch (e: any) {
       Alert.alert(
         "Registration Failed",

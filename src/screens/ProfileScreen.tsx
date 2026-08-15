@@ -9,7 +9,11 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import type {
+  NativeStackNavigationProp,
+} from "@react-navigation/native-stack";
 
+import { RootStackParamList } from "../navigation/AppNavigator";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { uploadImage } from "../services/cloudinary";
@@ -25,9 +29,13 @@ import {
 import { Colors } from "../theme/colors";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+type NavigationProp =
+  NativeStackNavigationProp<RootStackParamList>;
+
 export default function ProfileScreen() {
 
-  const navigation = useNavigation();
+  const navigation =
+  useNavigation<NavigationProp>();
 
   const currentUser = getCurrentUser();
 
@@ -63,6 +71,7 @@ export default function ProfileScreen() {
       setPhoto(uri);
     }
   }
+
 
   async function save() {
 
@@ -141,12 +150,21 @@ export default function ProfileScreen() {
 
 
   
-  {photo ? (
+ {photo ? (
+  <TouchableOpacity
+    activeOpacity={0.9}
+    onPress={() =>
+      navigation.navigate("ProfilePhoto", {
+        photo,
+      })
+    }
+  >
     <Image
       source={{ uri: photo }}
       style={styles.avatar}
     />
-  ) : (
+  </TouchableOpacity>
+) : (
     <View style={styles.avatarPlaceholder}>
       <Text style={styles.avatarLetter}>
         {name?.charAt(0).toUpperCase() || "U"}
@@ -166,6 +184,60 @@ export default function ProfileScreen() {
   </TouchableOpacity>
 
 </View>
+{photo ? (
+  <TouchableOpacity
+    style={styles.removePhotoButton}
+    onPress={() => {
+      Alert.alert(
+        "Remove Profile Photo",
+        "Are you sure you want to remove your profile photo?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                setLoading(true);
+
+                const uid = getCurrentUser()?.uid;
+
+                if (!uid) return;
+
+                await updateUserProfile(uid, {
+                  photo: "",
+                });
+
+                setPhoto("");
+              } catch (e) {
+                Alert.alert(
+                  "Error",
+                  "Failed to remove profile photo."
+                );
+              } finally {
+                setLoading(false);
+              }
+            },
+          },
+        ]
+      );
+    }}
+    disabled={loading}
+  >
+    <Ionicons
+      name="trash-outline"
+      size={17}
+      color="#DC2626"
+    />
+
+    <Text style={styles.removePhotoText}>
+      Remove Photo
+    </Text>
+  </TouchableOpacity>
+) : null}
 
 <Text style={styles.userName}>
   @{username}
@@ -263,6 +335,46 @@ const styles = StyleSheet.create({
   container: {
     padding: 24,
   },
+
+  photoActions: {
+  flexDirection: "row",
+  justifyContent: "center",
+  alignItems: "center",
+  marginTop: -22,
+  marginBottom: 20,
+},
+
+photoActionText: {
+  color: Colors.primary,
+  fontSize: 14,
+  fontWeight: "600",
+},
+
+actionDivider: {
+  width: 1,
+  height: 16,
+  backgroundColor: "#CBD5E1",
+  marginHorizontal: 14,
+},
+
+removePhotoButton: {
+  marginTop: 12,
+  alignSelf: "center",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingHorizontal: 14,
+  paddingVertical: 8,
+  borderRadius: 10,
+  backgroundColor: "#FEF2F2",
+},
+
+removePhotoText: {
+  marginLeft: 6,
+  color: "#DC2626",
+  fontSize: 14,
+  fontWeight: "600",
+},
 
   userName:{
     marginTop:10,

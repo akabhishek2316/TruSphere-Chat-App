@@ -113,9 +113,10 @@ export default function SettingsScreen() {
       <AppHeader title="Settings" />
 
       <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
+  contentContainerStyle={styles.scrollContent}
+  keyboardShouldPersistTaps="handled"
+  showsVerticalScrollIndicator={false}
+>
         <View style={styles.container}>
 
 
@@ -257,6 +258,31 @@ export default function SettingsScreen() {
             />
           </TouchableOpacity>
 
+<TouchableOpacity
+  activeOpacity={0.72}
+  style={styles.securityItem}
+>
+  <Ionicons
+    name="shield-checkmark-outline"
+    size={24}
+    color="#2563EB"
+  />
+
+  <View style={styles.textArea}>
+    <Text style={styles.heading}>
+      Session & Security
+    </Text>
+
+    <Text style={styles.sub}>
+      You'll stay signed in for up to 7 days of inactivity
+    </Text>
+  </View>
+</TouchableOpacity>
+
+
+
+
+  
 
 
           <Text style={styles.sectionTitle}>
@@ -674,11 +700,40 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
-    paddingHorizontal: 10,
+    
+    paddingHorizontal: 5,
     paddingTop: 4,
   },
 
+  scrollContent: {
+  paddingHorizontal: 10,
+  paddingTop: 4,
+  paddingBottom: 40,
+  
+},
+
+
+securityItem: {
+  backgroundColor: "#EFF6FF",
+  borderRadius: 18,
+  paddingHorizontal: 18,
+  paddingVertical: 16,
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 8,
+
+  borderWidth: 1,
+  borderColor: "#BFDBFE",
+
+  elevation: 2,
+  shadowColor: "#2563EB",
+  shadowOpacity: 0.06,
+  shadowRadius: 6,
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+},
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",

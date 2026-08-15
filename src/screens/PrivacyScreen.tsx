@@ -107,10 +107,11 @@ function SwitchItem({
     <SafeAreaView style={{ flex: 1 }}>
      <AppHeader title="Privacy" />
 
-     <ScrollView
-           contentContainerStyle={styles.container}
-           keyboardShouldPersistTaps="handled"
-       >
+    <ScrollView
+  contentContainerStyle={styles.scrollContent}
+  keyboardShouldPersistTaps="handled"
+  showsVerticalScrollIndicator={false}
+>
 
       {/* Visibility */}
 
@@ -152,6 +153,8 @@ function SwitchItem({
           title="Typing Indicator"
          
         />
+
+        
 
         <MenuItem
           icon="timer-outline"
@@ -206,6 +209,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
     padding: 16,
   },
+
+  scrollContent: {
+  paddingHorizontal: 10,
+  paddingTop: 4,
+  paddingBottom: 40,
+  
+},
 
   footer: {
   marginTop: 12,

@@ -4,7 +4,7 @@ import * as Notifications from "expo-notifications";
 import { useEffect } from "react";
 import { useNavigationContainerRef } from "@react-navigation/native";
 import SplashScreen from "../screens/SplashScreen";
-
+import { sendMessage } from "../services/chatService";
 import ChatScreen from "../screens/ChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import SettingsScreen from "../screens/SettingsScreen";
@@ -25,6 +25,7 @@ import ProfilePhotoScreen from "../screens/ProfilePhotoScreen";
 import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import BlockedContactsScreen from "../screens/BlockedContactsScreen";
 import { setPendingNotification } from "../services/notificationService";
+import { getCurrentUser } from "../services/authService";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -102,24 +103,95 @@ export default function AppNavigator() {
   checkInitialNotification();
 
     const subscription =
-      Notifications.addNotificationResponseReceivedListener(
-        (response) => {
-          console.log(
-            "NOTIFICATION CLICKED =>",
-            response.notification.request.content.data
-          );
-
-          const data =
-            response.notification.request.content.data as any;
-
-          if (data?.chatId && data?.senderId) {
-            navigationRef.navigate("Chat", {
-              chatId: data.chatId,
-              otherUserId: data.senderId,
-            });
-          }
-        }
+  Notifications.addNotificationResponseReceivedListener(
+  async (response) => {
+      console.log(
+        "NOTIFICATION RESPONSE =>",
+        response.actionIdentifier
       );
+
+      console.log(
+        "NOTIFICATION DATA =>",
+        response.notification.request.content.data
+      );
+
+      const data =
+        response.notification.request.content.data as any;
+
+      // ==========================================
+      // REPLY ACTION
+      // ==========================================
+
+      if (
+  response.actionIdentifier ===
+  "reply"
+) {
+  const userText =
+    response.userText?.trim();
+
+  if (
+    !userText ||
+    !data?.chatId ||
+    !data?.senderId
+  ) {
+    return;
+  }
+
+  try {
+    const currentUser =
+      getCurrentUser();
+
+    if (!currentUser) {
+      console.log(
+        "REPLY FAILED => USER NOT LOGGED IN"
+      );
+      return;
+    }
+
+    await sendMessage(
+      data.chatId,
+      {
+        sender: currentUser.uid,
+        receiver: data.senderId,
+        text: userText,
+        timestamp: Date.now(),
+        type: "text",
+      } as any
+    );
+
+    console.log(
+      "NOTIFICATION REPLY SENT =>",
+      userText
+    );
+
+  } catch (e) {
+    console.log(
+      "NOTIFICATION REPLY ERROR =>",
+      e
+    );
+  }
+
+  return;
+}
+      // ==========================================
+      // NORMAL NOTIFICATION TAP
+      // ==========================================
+
+      if (
+        data?.chatId &&
+        data?.senderId
+      ) {
+        navigationRef.navigate(
+          "Chat",
+          {
+            chatId: data.chatId,
+            otherUserId:
+              data.senderId,
+          }
+        );
+      }
+    }
+  );
 
     return () => subscription.remove();
   }, []);

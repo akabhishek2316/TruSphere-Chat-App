@@ -22,8 +22,8 @@ import {
   startForegroundNotificationListener,
   stopForegroundNotificationListener,
   setupNotificationChannel,
+  setupNotificationActions,
 } from "./src/services/notificationService";
-
 
 export default function App() {
 
@@ -40,7 +40,9 @@ console.log("SHARE INTENT =>", JSON.stringify(shareIntent));
 console.log("SHARE ERROR =>", JSON.stringify(error));
   
   useEffect(() => {
+    
   setupNotificationChannel();
+  setupNotificationActions();
 
   startAppServices();
   startForegroundNotificationListener();
