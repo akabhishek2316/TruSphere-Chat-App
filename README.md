@@ -4,6 +4,12 @@
 
 TruSphere is a real-time messaging application built with **React Native, Expo, TypeScript, and Firebase**, focused on real-time communication, messaging, notifications, media sharing, and modern chat features.
 
+## 📱 Try TruSphere
+
+[Download Android APK](https://github.com/akabhishek2316/TruSphere-Chat-App/releases/latest)
+
+> TruSphere is currently available as an Android application.
+
 ## 🚀 Key Features
 
 - 💬 **Real-Time Messaging** — One-to-one chat with Firebase Realtime Database synchronization.
