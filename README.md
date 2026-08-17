@@ -8,19 +8,22 @@ TruSphere is a real-time messaging application built with **React Native, Expo, 
 
 [Download Android APK](https://github.com/akabhishek2316/TruSphere-Chat-App/releases/latest)
 
+> **Current Version:** `v1.1.0`  
 > TruSphere is currently available as an Android application.
 
 ## 🚀 Key Features
 
 - 💬 **Real-Time Messaging** — One-to-one chat with Firebase Realtime Database synchronization.
 - ✓ **Message Status** — Sent, delivered, and read receipts with real-time updates.
+- ℹ️ **Message Info** — View message delivery and read information.
+- ↩️ **Message Actions** — Reply, reactions, copy, delete for me, and delete for everyone.
 - 🟢 **Presence & Typing** — Online/offline status and real-time typing indicators.
 - 🔔 **Push Notifications** — Firebase Cloud Messaging with a Node.js notification server using Firebase Admin SDK.
 - 🖼️ **Media Sharing** — Image sharing with Cloudinary-based media uploads.
 - 🎙️ **Voice Messaging** — Voice recording, playback, and message synchronization.
-- ↩️ **Message Actions** — Reply, delete for everyone, unread tracking, and disappearing messages.
+- ⏳ **Disappearing Messages** — Messages can automatically disappear after a selected duration.
+- 🚫 **User Controls** — Block, unblock, clear chat, and delete chat options.
 - 📞 **Calling** — Real-time voice/video calling is currently under development.
-
 ## 🛠️ Tech Stack
 
 **Mobile:** React Native, Expo, TypeScript
