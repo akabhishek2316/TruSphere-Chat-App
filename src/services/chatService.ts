@@ -423,15 +423,18 @@ export async function markRead(
   messageId: string
 ) {
   console.log("MARK READ CALLED", chatId, messageId);
+
   await update(
     ref(
-  database,
-  `chatRooms/${chatId}/messages/${messageId}`
-),
+      database,
+      `chatRooms/${chatId}/messages/${messageId}`
+    ),
     {
       status: "read",
+      readAt: Date.now(),
     }
   );
+
   console.log("READ UPDATED");
 }
 
@@ -439,32 +442,77 @@ export async function deleteForEveryone(
   chatId: string,
   messageId: string
 ) {
-  await update(
-    ref(
-      database,
-      `chatRooms/${chatId}/messages/${messageId}`
-    ),
-    {
-      text: "This message was deleted",
-
-      deleted: true,
-      deletedForEveryone: true,
-
-      // NEW
-      type: "deleted",
-
-      image: null,
-      voiceUrl: null,
-      localUri: null,
-      caption: null,
-      duration: null,
-      uploadCompleted: true,
-      reactions: null,
-      replyTo: null,
-    }
+  const messageRef = ref(
+    database,
+    `chatRooms/${chatId}/messages/${messageId}`
   );
 
-  
+  const messageSnap = await get(messageRef);
+
+  if (!messageSnap.exists()) return;
+
+  const lastReactionRef = ref(
+    database,
+    `chatRooms/${chatId}/lastReaction`
+  );
+
+  const lastReactionSnap = await get(
+    lastReactionRef
+  );
+
+  const updates: Record<string, any> = {
+    [`chatRooms/${chatId}/messages/${messageId}/text`]:
+      "This message was deleted",
+
+    [`chatRooms/${chatId}/messages/${messageId}/deleted`]:
+      true,
+
+    [`chatRooms/${chatId}/messages/${messageId}/deletedForEveryone`]:
+      true,
+
+    [`chatRooms/${chatId}/messages/${messageId}/type`]:
+      "deleted",
+
+    [`chatRooms/${chatId}/messages/${messageId}/image`]:
+      null,
+
+    [`chatRooms/${chatId}/messages/${messageId}/voiceUrl`]:
+      null,
+
+    [`chatRooms/${chatId}/messages/${messageId}/localUri`]:
+      null,
+
+    [`chatRooms/${chatId}/messages/${messageId}/caption`]:
+      null,
+
+    [`chatRooms/${chatId}/messages/${messageId}/duration`]:
+      null,
+
+    [`chatRooms/${chatId}/messages/${messageId}/uploadCompleted`]:
+      true,
+
+    [`chatRooms/${chatId}/messages/${messageId}/reactions`]:
+      null,
+
+    [`chatRooms/${chatId}/messages/${messageId}/replyTo`]:
+      null,
+  };
+
+  // Agar isi message par last reaction tha,
+  // to chat-level reaction bhi remove karo.
+  if (
+    lastReactionSnap.exists() &&
+    lastReactionSnap.val()?.messageId === messageId
+  ) {
+    updates[
+      `chatRooms/${chatId}/lastReaction`
+    ] = null;
+  }
+
+  await update(
+    ref(database),
+    updates
+  );
 }
 
 export async function deleteForMe(
@@ -805,19 +853,36 @@ export async function getDisappearingMessages(
 export async function cleanupExpiredMessages(
   chatId: string
 ) {
-  const snapshot = await get(
-    ref(
-      database,
-      `chatRooms/${chatId}/messages`
-    )
+  const messagesRef = ref(
+    database,
+    `chatRooms/${chatId}/messages`
   );
 
-  if (!snapshot.exists()) return;
+  const snap = await get(messagesRef);
 
-  const messages = snapshot.val();
+  if (!snap.exists()) return;
 
+  const messages = snap.val();
   const now = Date.now();
 
+  // Current chat-level last reaction
+  const lastReactionRef = ref(
+    database,
+    `chatRooms/${chatId}/lastReaction`
+  );
+
+  const lastReactionSnap =
+    await get(lastReactionRef);
+
+  const lastReaction = lastReactionSnap.exists()
+    ? lastReactionSnap.val()
+    : null;
+
+  const updates: Record<string, null> = {};
+
+  let expiredMessageIds: string[] = [];
+
+  // Find expired messages
   for (const key in messages) {
     const msg = messages[key];
 
@@ -825,13 +890,53 @@ export async function cleanupExpiredMessages(
       msg.expiresAt &&
       msg.expiresAt <= now
     ) {
-      await remove(
-        ref(
-          database,
-          `chatRooms/${chatId}/messages/${key}`
-        )
-      );
+      expiredMessageIds.push(key);
+
+      updates[
+        `chatRooms/${chatId}/messages/${key}`
+      ] = null;
     }
+  }
+
+  // Nothing expired
+  if (expiredMessageIds.length === 0) {
+    return;
+  }
+
+  // If lastReaction belongs to an expired message,
+  // remove the chat-level reaction too.
+  if (
+    lastReaction?.messageId &&
+    expiredMessageIds.includes(
+      lastReaction.messageId
+    )
+  ) {
+    updates[
+      `chatRooms/${chatId}/lastReaction`
+    ] = null;
+  }
+
+  // Delete expired messages + stale reaction
+  await update(
+    ref(database),
+    updates
+  );
+
+  console.log(
+    "EXPIRED MESSAGES CLEANED =>",
+    expiredMessageIds
+  );
+
+  if (
+    lastReaction?.messageId &&
+    expiredMessageIds.includes(
+      lastReaction.messageId
+    )
+  ) {
+    console.log(
+      "EXPIRED MESSAGE LAST REACTION CLEARED =>",
+      lastReaction.messageId
+    );
   }
 }
 

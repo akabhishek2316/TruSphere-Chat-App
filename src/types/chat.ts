@@ -105,6 +105,10 @@ export type ChatMessage = {
 
   replyTo?: ReplyMessage;
 
+  deliveredAt?: number;
+
+  readAt?: number;
+
   reactions?: Record<UserId, string>;
 
   readBy?: Record<UserId, boolean>;

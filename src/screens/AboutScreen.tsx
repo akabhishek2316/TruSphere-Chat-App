@@ -11,8 +11,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AppHeader from "../components/AppHeader";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors } from "../theme/colors";
+import Constants from "expo-constants";
+
 
 export default function AboutScreen() {
+
+  const appVersion =
+  Constants.expoConfig?.version ?? "0.0.0";
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
@@ -45,7 +51,7 @@ export default function AboutScreen() {
           </View>
 
           <Text style={styles.version}>
-            Version 1.0.0
+              Version {appVersion}
           </Text>
 
           <Text style={styles.desc}>

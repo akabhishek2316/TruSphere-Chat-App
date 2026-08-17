@@ -52,7 +52,7 @@ import { useNavigation } from "@react-navigation/native";
 import { subscribePresence } from "../services/presenceService";
 import { Ionicons } from "@expo/vector-icons";
 import { getCurrentUser } from "../services/authService";
-import { formatChatListTime } from "../types/utils/formatTime";
+import { formatChatListTime } from "../types/utils/dateTime";
 import { getUserProfile } from "../services/userService";
 import { subscribeUnreadCount, } from "../services/chatService";
 import { subscribeLastReaction } from "../services/chatService";
@@ -79,6 +79,8 @@ export default function ChatListScreen() {
 
 
     const [chats, setChats] = useState<any[]>([]);
+    const [chatListLoading, setChatListLoading] = useState(true);
+    
     const [myProfile, setMyProfile] = useState<any>(null);
 
     const [search, setSearch] = useState("");
@@ -167,57 +169,69 @@ export default function ChatListScreen() {
 
 
 
-    useEffect(() => {
-        const load = async () => {
-            const me = getCurrentUser()?.uid || "";
-            if (!me) return;
+ useEffect(() => {
+    if (!authReady || !currentUser) {
+        return;
+    }
 
+    setChatListLoading(true);
 
-            const unsubscribe =
-                subscribeUsers((users) => {
-                    setChats(oldChats => {
+    const me = currentUser.uid;
 
-                        return Object.entries(users)
-                            .filter(([uid]) => uid !== me)
-                            .map(([uid, user]: any) => {
+    const unsubscribe = subscribeUsers((users) => {
 
-                                const old =
-                                    oldChats.find(
-                                        c => c.otherUserId === uid
-                                    );
+        setChats((oldChats) => {
 
-                                return {
-                                    id: getChatId(me, uid),
-                                    otherUserId: uid,
+            const newChats = Object.entries(users)
+                .filter(([uid]) => uid !== me)
+                .map(([uid, user]: any) => {
 
-                                    name: user.name,
-                                    photo: user.photo,
+                    const old = oldChats.find(
+                        c => c.otherUserId === uid
+                    );
 
-                                    iBlocked: old?.iBlocked || false,
-                                    blockedMe: old?.blockedMe || false,
+                    return {
+                        id: getChatId(me, uid),
+                        otherUserId: uid,
 
-                                    lastMessage: old?.lastMessage || "",
-                                    lastTime: old?.lastTime || "",
-                                    lastTimestamp: old?.lastTimestamp || 0,
-                                    unread: old?.unread || 0,
-                                    typing: old?.typing || false,
-                                    recording: old?.recording || false,
-                                    online: old?.online || false,
-                                    lastSeen: old?.lastSeen || 0,
-                                    lastStatus: old?.lastStatus || "",
-                                    lastSender: old?.lastSender || "",
-                                    lastMessageObj: old?.lastMessageObj || null,
-                                };
-                            });
+                        name: user.name,
+                        photo: user.photo,
 
-                    });
+                        iBlocked: old?.iBlocked || false,
+                        blockedMe: old?.blockedMe || false,
+
+                        lastMessage: old?.lastMessage || "",
+                        lastTime: old?.lastTime || "",
+                        lastTimestamp:
+                            old?.lastTimestamp || 0,
+
+                        unread: old?.unread || 0,
+                        typing: old?.typing || false,
+                        recording: old?.recording || false,
+                        online: old?.online || false,
+                        lastSeen: old?.lastSeen || 0,
+
+                        lastStatus: old?.lastStatus || "",
+                        lastSender: old?.lastSender || "",
+
+                        lastMessageObj:
+                            old?.lastMessageObj || null,
+
+                        lastReaction:
+                            old?.lastReaction || null,
+                    };
                 });
 
-            return unsubscribe;
-        };
+            // Users/chat structure ready
+            setChatListLoading(false);
 
-        load();
-    }, [currentUser]);
+            return newChats;
+        });
+    });
+
+    return unsubscribe;
+
+}, [authReady, currentUser]);
 
 
 
@@ -292,87 +306,85 @@ export default function ChatListScreen() {
     }, [currentUser]);
 
 
-    useEffect(() => {
-        const unsubscribers = chats.map((chat) =>
-            subscribeLastMessage(
-                chat.id,
-                currentUser!.uid,
-                (message) => {
-                    if (!message) {
-                        setChats(old =>
-                            old.map(c =>
-                                c.id === chat.id
-                                    ? {
-                                        ...c,
-                                        lastMessage: "",
-                                        lastTime: "",
-                                        lastMessageObj: null,
-                                    }
-                                    : c
-                            )
-                        );
+useEffect(() => {
+    if (!currentUser || chats.length === 0) {
+        return;
+    }
 
-                        return;
-                    }
+    const unsubscribers = chats.map((chat) =>
+        subscribeLastMessage(
+            chat.id,
+            currentUser.uid,
+            (message) => {
 
-                    setChats((oldChats) =>
-                        oldChats.map((c) =>
-                            c.id === chat.id
-                                ? {
-                                    ...c,
+                setChats((oldChats) =>
+                    oldChats.map((c) =>
+                        c.id === chat.id
+                            ? {
+                                ...c,
 
-
-
-                                    lastMessage:
-                                        message.deletedForEveryone
+                                lastMessage:
+                                    !message
+                                        ? ""
+                                        : message.deletedForEveryone
                                             ? (
-                                                message.sender === getCurrentUser()?.uid
+                                                message.sender === currentUser.uid
                                                     ? "You deleted this message"
                                                     : "This message was deleted"
                                             )
                                             : message.replyTo
-                                                ? `↩ ${message.replyTo.sender === currentUser?.uid
-                                                    ? "You"
-                                                    : message.replyTo.senderName
-                                                }: ${message.type === "image"
-                                                    ? "📷 Photo"
-                                                    : message.type === "voice"
-                                                        ? "🎤 Voice message"
-                                                        : message.text
+                                                ? `↩ ${
+                                                    message.replyTo.sender === currentUser.uid
+                                                        ? "You"
+                                                        : message.replyTo.senderName
+                                                }: ${
+                                                    message.type === "image"
+                                                        ? "📷 Photo"
+                                                        : message.type === "voice"
+                                                            ? "🎤 Voice message"
+                                                            : message.text
                                                 }`
                                                 : message.type === "image"
                                                     ? "📷 Photo"
                                                     : message.type === "voice"
                                                         ? "🎤 Voice message"
-                                                        : message.text,
+                                                        : message.text || "",
 
-                                    lastTime: formatChatListTime(
-                                        message.timestamp
-                                    ),
+                                lastTime:
+                                    message
+                                        ? formatChatListTime(
+                                            message.timestamp
+                                        )
+                                        : "",
 
-                                    lastTimestamp: message.timestamp,
-                                    lastStatus: message.status,
-                                    lastSender: message.sender,
-                                    lastMessageObj: message,
-                                    // NEW
-                                    lastReaction:
-                                        message.reactions
-                                            ? {
-                                                emoji: Object.values(message.reactions)[0],
-                                                count: Object.keys(message.reactions).length,
-                                            }
-                                            : null,
-                                }
-                                : c
-                        )
-                    );
-                })
-        );
+                                lastTimestamp:
+                                    message?.timestamp || 0,
 
-        return () => {
-            unsubscribers.forEach((u) => u());
-        };
-    }, [chats.length]);
+                                lastStatus:
+                                    message?.status || "",
+
+                                lastSender:
+                                    message?.sender || "",
+
+                                lastMessageObj:
+                                    message || null,
+
+                            }
+                            : c
+                    )
+                );
+
+            }
+        )
+    );
+
+    return () => {
+        unsubscribers.forEach((unsubscribe) => {
+            unsubscribe();
+        });
+    };
+
+}, [currentUser, chats.length]);
 
 
     useEffect(() => {
@@ -613,20 +625,20 @@ export default function ChatListScreen() {
     //         </SafeAreaView>
     //     );
 
-        
+
     // }
 
     const visibleChats = [...chats]
-    .filter(chat =>
-        chat.lastMessageObj ||
-        chat.lastMessage !== "" ||
-        chat.lastTimestamp !== 0
-    )
-    .filter(chat =>
-        !hiddenChats[chat.id]
-    );
+        .filter(chat =>
+            chat.lastMessageObj ||
+            chat.lastMessage !== "" ||
+            chat.lastTimestamp !== 0
+        )
+        .filter(chat =>
+            !hiddenChats[chat.id]
+        );
 
-const hasChats = visibleChats.length > 0;
+    const hasChats = visibleChats.length > 0;
 
 
 
@@ -749,52 +761,65 @@ const hasChats = visibleChats.length > 0;
 
 
 
-<View
-    style={[
-        styles.searchContainer,
-        !hasChats && styles.disabledSearchContainer,
-    ]}
->
-    <Ionicons
-        name="search-outline"
-        size={21}
-        color={hasChats ? "#64748B" : "#CBD5E1"}
-    />
+            <View
+                style={[
+                    styles.searchContainer,
+                    !hasChats && styles.disabledSearchContainer,
+                ]}
+            >
+                <Ionicons
+                    name="search-outline"
+                    size={21}
+                    color={hasChats ? "#64748B" : "#CBD5E1"}
+                />
 
-    <TextInput
-        placeholder={
-            hasChats
-                ? "Search chats..."
-                : "Start a New Chat to search users"
-        }
-        placeholderTextColor={
-            hasChats ? "#94A3B8" : "#CBD5E1"
-        }
-        value={hasChats ? search : ""}
-        onChangeText={hasChats ? setSearch : undefined}
-        editable={hasChats}
-        style={[
-            styles.searchInput,
-            !hasChats && styles.disabledSearchInput,
-        ]}
-        underlineColorAndroid="transparent"
-        selectionColor="#2563EB"
-        cursorColor="#2563EB"
-    />
+                <TextInput
+                    placeholder={
+                        hasChats
+                            ? "Search chats..."
+                            : "Start a New Chat to search users"
+                    }
+                    placeholderTextColor={
+                        hasChats ? "#94A3B8" : "#CBD5E1"
+                    }
+                    value={hasChats ? search : ""}
+                    onChangeText={hasChats ? setSearch : undefined}
+                    editable={hasChats}
+                    style={[
+                        styles.searchInput,
+                        !hasChats && styles.disabledSearchInput,
+                    ]}
+                    underlineColorAndroid="transparent"
+                    selectionColor="#2563EB"
+                    cursorColor="#2563EB"
+                />
 
-    {hasChats && search.length > 0 && (
-        <TouchableOpacity
-            onPress={() => setSearch("")}
-            activeOpacity={0.7}
-        >
-            <Ionicons
-                name="close-circle"
-                size={20}
-                color="#94A3B8"
-            />
-        </TouchableOpacity>
-    )}
-</View>
+                {hasChats && search.length > 0 && (
+                    <TouchableOpacity
+                        onPress={() => setSearch("")}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name="close-circle"
+                            size={20}
+                            color="#94A3B8"
+                        />
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {chatListLoading ? (
+    <View style={styles.loadingContainer}>
+        <ActivityIndicator
+            size="large"
+            color="#2563EB"
+        />
+
+        <Text style={styles.loadingText}>
+            Loading chats...
+        </Text>
+    </View>
+) : (
 
             <FlatList
                 contentContainerStyle={styles.listContent}
@@ -1114,7 +1139,7 @@ const hasChats = visibleChats.length > 0;
                 Try another name
             </Text>
         </View>
-    ) : (
+    ) : chats.length === 0 ? (
         <View style={styles.emptyContainer}>
             <Ionicons
                 name="chatbubbles-outline"
@@ -1153,27 +1178,29 @@ const hasChats = visibleChats.length > 0;
                 </Text>
             </TouchableOpacity>
         </View>
-    )
+    ) : null
 }
 
 
 
             />
 
+           )} 
 
-           {hasChats && (
-    <TouchableOpacity
-        activeOpacity={0.8}
-        style={styles.fab}
-        onPress={() => navigation.navigate("NewChat")}
-    >
-        <Ionicons
-            name="chatbubble-ellipses"
-            size={27}
-            color="#fff"
-        />
-    </TouchableOpacity>
-)}
+
+            {hasChats && (
+                <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.fab}
+                    onPress={() => navigation.navigate("NewChat")}
+                >
+                    <Ionicons
+                        name="chatbubble-ellipses"
+                        size={27}
+                        color="#fff"
+                    />
+                </TouchableOpacity>
+            )}
 
 
         </SafeAreaView >
@@ -1187,16 +1214,30 @@ const styles = StyleSheet.create({
 
     },
 
-    disabledSearchContainer: {
-    backgroundColor: "#F1F5F9",
-    borderColor: "#E2E8F0",
-    elevation: 0,
-    shadowOpacity: 0,
+    loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingBottom: 80,
 },
 
-disabledSearchInput: {
-    color: "#CBD5E1",
+loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "500",
 },
+
+    disabledSearchContainer: {
+        backgroundColor: "#F1F5F9",
+        borderColor: "#E2E8F0",
+        elevation: 0,
+        shadowOpacity: 0,
+    },
+
+    disabledSearchInput: {
+        color: "#CBD5E1",
+    },
 
 
     header: {
@@ -1312,73 +1353,73 @@ disabledSearchInput: {
 
         paddingVertical: 0,
     },
-emptyContainer: {
-    alignItems: "center",
+    emptyContainer: {
+        alignItems: "center",
 
-    marginTop: 90,
+        marginTop: 90,
 
-    paddingHorizontal: 35,
-},
+        paddingHorizontal: 35,
+    },
 
     emptyIconCircle: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
+        width: 86,
+        height: 86,
+        borderRadius: 43,
 
-    backgroundColor: "#EFF6FF",
+        backgroundColor: "#EFF6FF",
 
-    justifyContent: "center",
-    alignItems: "center",
+        justifyContent: "center",
+        alignItems: "center",
 
-    marginBottom: 4,
-},
-
-emptyNewChatButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-
-    marginTop: 22,
-
-    paddingHorizontal: 22,
-    height: 48,
-
-    borderRadius: 24,
-
-    backgroundColor: "#2563EB",
-
-    elevation: 4,
-
-    shadowColor: "#2563EB",
-    shadowOpacity: 0.20,
-    shadowRadius: 8,
-    shadowOffset: {
-        width: 0,
-        height: 4,
+        marginBottom: 4,
     },
-},
 
-emptyNewChatText: {
-    marginLeft: 8,
+    emptyNewChatButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
 
-    color: "#FFFFFF",
+        marginTop: 22,
 
-    fontSize: 15,
-    fontWeight: "700",
-},
+        paddingHorizontal: 22,
+        height: 48,
 
-emptyHint: {
-    marginTop: 8,
+        borderRadius: 24,
 
-    fontSize: 13,
-    lineHeight: 19,
+        backgroundColor: "#2563EB",
 
-    color: "#94A3B8",
+        elevation: 4,
 
-    textAlign: "center",
+        shadowColor: "#2563EB",
+        shadowOpacity: 0.20,
+        shadowRadius: 8,
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+    },
 
-    maxWidth: 280,
-},
+    emptyNewChatText: {
+        marginLeft: 8,
+
+        color: "#FFFFFF",
+
+        fontSize: 15,
+        fontWeight: "700",
+    },
+
+    emptyHint: {
+        marginTop: 8,
+
+        fontSize: 13,
+        lineHeight: 19,
+
+        color: "#94A3B8",
+
+        textAlign: "center",
+
+        maxWidth: 280,
+    },
 
     emptyTitle: {
         fontSize: 22,

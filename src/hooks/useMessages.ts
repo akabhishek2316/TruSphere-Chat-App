@@ -12,6 +12,8 @@ import {
   useIsFocused,
 } from "@react-navigation/native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import {
   ChatMessage,
   UserId,
@@ -22,6 +24,9 @@ import {
   markRead,
 } from "../services/chatService";
 
+const getMessagesCacheKey = (chatId: string) =>
+  `CHAT_MESSAGES_CACHE_${chatId}`;
+
 export default function useMessages(
   chatId: string,
   currentUserId: UserId
@@ -29,8 +34,81 @@ export default function useMessages(
   const [messages, setMessages] =
     useState<ChatMessage[]>([]);
 
-  const isFocused =
-    useIsFocused();
+  const isFocused = useIsFocused();
+
+  /*
+   * --------------------------------
+   * LOAD LOCAL CACHE IMMEDIATELY
+   * --------------------------------
+   */
+
+  useEffect(() => {
+    if (!chatId || !currentUserId) return;
+
+    let cancelled = false;
+
+    const loadCache = async () => {
+      try {
+        const cached =
+          await AsyncStorage.getItem(
+            getMessagesCacheKey(chatId)
+          );
+
+        if (!cached || cancelled) return;
+
+        const parsed: ChatMessage[] =
+          JSON.parse(cached);
+
+        const now = Date.now();
+
+        const visibleCached =
+          parsed.filter((msg) => {
+
+            if (
+              msg.expiresAt &&
+              msg.expiresAt <= now
+            ) {
+              return false;
+            }
+
+            if (
+              msg.sender !== currentUserId &&
+              (
+                msg.type === "image" ||
+                msg.type === "voice"
+              ) &&
+              !msg.uploadCompleted
+            ) {
+              return false;
+            }
+
+            return true;
+          });
+
+        setMessages(visibleCached);
+
+      } catch (error) {
+        console.log(
+          "LOAD MESSAGE CACHE ERROR =>",
+          error
+        );
+      }
+    };
+
+    loadCache();
+
+    return () => {
+      cancelled = true;
+    };
+
+  }, [chatId, currentUserId]);
+
+
+  /*
+   * --------------------------------
+   * FIREBASE REALTIME SYNC
+   * --------------------------------
+   */
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -51,12 +129,6 @@ export default function useMessages(
         chatId,
         (list) => {
 
-          /*
-           * --------------------------------
-           * FILTER ONLY
-           * --------------------------------
-           */
-
           const now = Date.now();
 
           const visibleMessages =
@@ -70,8 +142,7 @@ export default function useMessages(
               }
 
               if (
-                msg.sender !==
-                  currentUserId &&
+                msg.sender !== currentUserId &&
                 (
                   msg.type === "image" ||
                   msg.type === "voice"
@@ -84,16 +155,36 @@ export default function useMessages(
               return true;
             });
 
+
           /*
            * --------------------------------
-           * IMPORTANT
-           * No JSON.stringify comparison
+           * UPDATE UI
            * --------------------------------
            */
 
           setMessages(
             visibleMessages
           );
+
+
+          /*
+           * --------------------------------
+           * SAVE FRESH DATA TO CACHE
+           * --------------------------------
+           */
+
+          AsyncStorage.setItem(
+            getMessagesCacheKey(chatId),
+            JSON.stringify(
+              visibleMessages
+            )
+          ).catch((error) => {
+            console.log(
+              "SAVE MESSAGE CACHE ERROR =>",
+              error
+            );
+          });
+
 
           /*
            * --------------------------------
@@ -111,10 +202,8 @@ export default function useMessages(
           const unreadMessages =
             list.filter(
               (msg) =>
-                msg.receiver ===
-                  currentUserId &&
-                msg.status ===
-                  "delivered"
+                msg.receiver === currentUserId &&
+                msg.status === "delivered"
             );
 
           if (
@@ -123,10 +212,6 @@ export default function useMessages(
             return;
           }
 
-          /*
-           * Parallel Firebase updates
-           * instead of sequential await
-           */
 
           Promise.all(
             unreadMessages.map(
@@ -149,11 +234,13 @@ export default function useMessages(
       unsubscribe();
       appStateSubscription.remove();
     };
+
   }, [
     chatId,
     currentUserId,
     isFocused,
   ]);
+
 
   return {
     messages,

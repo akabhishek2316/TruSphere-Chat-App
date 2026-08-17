@@ -17,6 +17,8 @@ type Props = {
   isDeletedMessage: boolean;
   onReply: () => void;
   onCopy: () => void;
+  isOwnMessage: boolean;
+  onInfo: () => void;
   onDeleteMe: () => void;
   onDeleteEveryone: () => void;
   canDeleteEveryone: boolean;
@@ -29,6 +31,8 @@ export default function MessageOptionsModal({
   isDeletedMessage,
   onReply,
   onCopy,
+  isOwnMessage,
+  onInfo,
   onDeleteMe,
   onDeleteEveryone,
   canDeleteEveryone,
@@ -118,6 +122,14 @@ export default function MessageOptionsModal({
               Colors.text,
               onCopy
             )}
+
+        {isOwnMessage &&
+  Item(
+    "information-circle-outline",
+    "Info",
+    Colors.text,
+    onInfo
+  )}
           </>
         )}
 
@@ -164,7 +176,7 @@ const styles = StyleSheet.create({
 
     paddingHorizontal: 20,
 
-    paddingVertical: 18,
+    paddingVertical: 13,
   },
 
   text: {
@@ -178,7 +190,7 @@ const styles = StyleSheet.create({
   emojiRow: {
     flexDirection: "row",
     justifyContent: "space-evenly",
-    paddingVertical: 14,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: "#EEEEEE",
   },

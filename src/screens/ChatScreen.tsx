@@ -68,7 +68,7 @@ import {
 
 
 import { TouchableOpacity } from "react-native";
-
+import MessageInfoModal from "../components/MessageInfoModal";
 import ChatHeader from "../components/ChatHeader";
 import MessageBubble from "../components/MessageBubble";
 import ChatInput from "../components/ChatInput";
@@ -76,7 +76,7 @@ import TypingIndicator from "../components/TypingIndicator";
 import useMessages from "../hooks/useMessages";
 import { Colors } from "../theme/colors";
 import DateSeparator from "../components/DateSeparator";
-import { formatChatDate } from "../types/utils/formatTime";
+import { formatChatDate } from "../types/utils/dateTime";
 import { subscribePrivacy } from "../services/privacyService";
 import * as ImagePicker from "expo-image-picker";
 import {
@@ -268,7 +268,8 @@ export default function ChatScreen() {
   const [deletedAt, setDeletedAt] =
     useState(0);
 
-
+const [showMessageInfo, setShowMessageInfo] =
+  useState(false);
 
   const [privacy, setPrivacy] = useState({
     iBlocked: false,
@@ -276,6 +277,12 @@ export default function ChatScreen() {
     hideProfile: false,
     canSend: true,
   });
+
+  const [infoMessage, setInfoMessage] =
+  useState<ChatMessage | null>(null);
+
+const [showInfo, setShowInfo] =
+  useState(false);
 
   const closeMessageOptions = () => {
     setShowOptions(false);
@@ -1056,6 +1063,18 @@ export default function ChatScreen() {
             }
           }}
 
+      isOwnMessage={
+    selectedMessage?.sender === currentUserId
+  }
+
+  onInfo={() => {
+    if (!selectedMessage) return;
+
+    setInfoMessage(selectedMessage);
+    setShowInfo(true);
+  }}
+
+
           onDeleteMe={async () => {
             if (selectedMessage) {
               await deleteForMe(
@@ -1119,6 +1138,14 @@ export default function ChatScreen() {
           }}
         />
 
+      <MessageInfoModal
+  visible={showInfo}
+  message={infoMessage}
+  onClose={() => {
+    setShowInfo(false);
+    setInfoMessage(null);
+  }}
+/>
 
       </KeyboardAvoidingView>
     </SafeAreaView>

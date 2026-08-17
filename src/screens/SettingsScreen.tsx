@@ -24,12 +24,16 @@ import { Alert } from "react-native";
 import { logout, getCurrentUser } from "../services/authService";
 import { setUserOffline } from "../services/presenceService";
 import { ActivityIndicator } from "react-native";
+import Constants from "expo-constants";
 
 export default function SettingsScreen() {
   const navigation =
     useNavigation<
       NativeStackNavigationProp<RootStackParamList>
     >();
+
+    const appVersion =
+  Constants.expoConfig?.version ?? "0.0.0";
 
   const [profile, setProfile] = useState<any>(null);
   const [showPasswordModal, setShowPasswordModal] =
@@ -332,9 +336,8 @@ export default function SettingsScreen() {
                 About TruSphere
               </Text>
 
-              <Text style={styles.sub}
-              >
-                Version 1.0.0
+              <Text style={styles.sub}>
+                Version {appVersion}
               </Text>
             </View>
 
@@ -654,9 +657,11 @@ export default function SettingsScreen() {
 
 
           <View style={styles.footer}>
-            <Text style={styles.version}>
-              TruSphere v1.0.0
-            </Text>
+            
+              <Text style={styles.version}>
+                Version {appVersion}
+              </Text>
+           
 
             <Text style={styles.footerText}>
               Made with ❤️ using React Native & Firebase
