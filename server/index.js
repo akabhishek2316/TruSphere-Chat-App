@@ -1,5 +1,6 @@
 require("dotenv").config();
 
+const crypto = require("crypto");
 const express = require("express");
 const admin = require("firebase-admin");
 
@@ -58,7 +59,7 @@ const db = admin.database();
 const app = express();
 
 app.disable("x-powered-by");
-app.use(express.json({ limit: "2kb" }));
+app.use(express.json({ limit: "8kb" }));
 
 // -----------------------------------------------------
 // Simple in-memory rate limit (per user): 60 requests / minute
@@ -443,6 +444,357 @@ app.post("/notifyCall", async (req, res) => {
     return res
       .status(500)
       .json({ success: false, message: "Server error" });
+  }
+});
+
+// =====================================================
+// MESSAGE CLEANUP (Firebase + Cloudinary)
+//
+// Jab koi message DONO taraf se delete ho jaye (kisi bhi tarah) to:
+//   1. uska image / voice Cloudinary se delete,
+//   2. phir message Firebase Realtime Database se hata diya jaye.
+// Isse database saaf rehta hai aur chat halki (kam hang).
+//
+// "Dono taraf se delete" ka matlab (server DB dekh kar khud tay karta hai,
+// client ki baat par bharosa nahi):
+//   - Delete for everyone              (deletedForEveryone)
+//   - Delete for me, dono users ne     (deletedFor[sender] && deletedFor[receiver])
+//   - Clear chat / delete chat dono ne (message time <= dono ke deletedAt)
+//   - Disappearing message expire hua  (expiresAt <= ab)
+//
+// Cloudinary delete me API secret chahiye, jo app me nahi rakh sakte, isliye
+// ye kaam server par hai. Env: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY,
+// CLOUDINARY_API_SECRET. Media delete fail ho to message Firebase me RAHEGA
+// (taaki baad me dobara try ho sake, media orphan na ho).
+// =====================================================
+
+const CLD_CLOUD = process.env.CLOUDINARY_CLOUD_NAME || "";
+const CLD_KEY = process.env.CLOUDINARY_API_KEY || "";
+const CLD_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+const CLD_ENABLED = Boolean(CLD_CLOUD && CLD_KEY && CLD_SECRET);
+
+if (!CLD_ENABLED) {
+  console.log(
+    "Cloudinary env missing: media messages will NOT be removed (text messages still are)"
+  );
+}
+
+const MAX_CLEANUP_IDS = 50;
+const SWEEP_PAGE = 300;
+const SWEEP_MAX = 3000;
+
+/**
+ * Cloudinary delivery URL se { resourceType, publicId } nikalo.
+ *   https://res.cloudinary.com/<cloud>/<image|video|raw>/upload/
+ *       [transformations/][v123/]<public_id>[.ext]
+ * Hamare cloud ke alawa kisi URL ko nahi chhuta (null).
+ */
+function parseCloudinaryUrl(url) {
+  if (typeof url !== "string" || url.length > 1000) return null;
+
+  const m = /^https:\/\/res\.cloudinary\.com\/([^/]+)\/(image|video|raw)\/upload\/([^?#]+)/.exec(
+    url
+  );
+
+  if (!m || m[1] !== CLD_CLOUD) return null;
+
+  const resourceType = m[2];
+
+  let segs = m[3].split("/");
+
+  // Transformations (w_600,c_limit ...) hatao
+  while (
+    segs.length > 1 &&
+    /^[a-z]{1,3}_[^/]*$/i.test(segs[0]) &&
+    !/^v\d+$/.test(segs[0])
+  ) {
+    segs.shift();
+  }
+
+  // Version (v1699999999)
+  if (segs.length > 1 && /^v\d+$/.test(segs[0])) {
+    segs.shift();
+  }
+
+  let publicId = segs.map((s) => decodeURIComponent(s)).join("/");
+
+  // image / video me public_id extension ke bina hota hai
+  if (resourceType !== "raw") {
+    publicId = publicId.replace(/\.[A-Za-z0-9]{1,5}$/, "");
+  }
+
+  return publicId ? { resourceType, publicId } : null;
+}
+
+/** Cloudinary se ek asset delete. "not found" bhi success (pehle hi delete) */
+async function destroyCloudinaryAsset(resourceType, publicId) {
+  const timestamp = Math.floor(Date.now() / 1000);
+
+  // Signature: params alphabetical (api_key / resource_type / signature chhodkar)
+  const toSign = `invalidate=true&public_id=${publicId}&timestamp=${timestamp}`;
+
+  const signature = crypto
+    .createHash("sha1")
+    .update(toSign + CLD_SECRET)
+    .digest("hex");
+
+  const body = new URLSearchParams({
+    public_id: publicId,
+    timestamp: String(timestamp),
+    api_key: CLD_KEY,
+    signature,
+    invalidate: "true",
+  });
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+
+  try {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLD_CLOUD}/${resourceType}/destroy`,
+      { method: "POST", body, signal: controller.signal }
+    );
+
+    const json = await res.json().catch(() => ({}));
+
+    return json.result === "ok" || json.result === "not found";
+  } catch (e) {
+    console.log("CLOUDINARY DESTROY ERROR =>", e && e.message);
+
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Message ke saare Cloudinary media (image, voice, aur delete-for-everyone ka trash) */
+function collectMediaUrls(m) {
+  const urls = [m.image, m.voiceUrl, m.thumbnail];
+
+  if (m.trashMedia && typeof m.trashMedia === "object") {
+    urls.push(m.trashMedia.image, m.trashMedia.voiceUrl);
+  }
+
+  return [...new Set(urls.filter((u) => typeof u === "string" && u))];
+}
+
+/** Kya ye message dono taraf se delete mana jaye? */
+function isDeadMessage(m, cutoffs, now) {
+  if (!m || typeof m !== "object") return false;
+
+  if (m.deletedForEveryone === true) return true;
+
+  const df = m.deletedFor || {};
+
+  if (df[m.sender] === true && df[m.receiver] === true) return true;
+
+  if (
+    typeof m.expiresAt === "number" &&
+    m.expiresAt > 0 &&
+    m.expiresAt <= now
+  ) {
+    return true;
+  }
+
+  const a = cutoffs[m.sender];
+  const b = cutoffs[m.receiver];
+
+  if (
+    typeof a === "number" &&
+    typeof b === "number" &&
+    typeof m.timestamp === "number" &&
+    m.timestamp <= a &&
+    m.timestamp <= b
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+async function loadCutoffs(chatId) {
+  const snap = await db.ref(`chatRooms/${chatId}/deletedForUsers`).get();
+
+  const cutoffs = {};
+
+  if (snap.exists()) {
+    snap.forEach((child) => {
+      const at = child.val() && child.val().deletedAt;
+
+      if (typeof at === "number") cutoffs[child.key] = at;
+    });
+  }
+
+  return cutoffs;
+}
+
+async function isParticipant(chatId, uid) {
+  if (!ID_REGEX.test(chatId) || !chatId.includes(uid)) return false;
+
+  const snap = await db.ref(`chatRooms/${chatId}/participants/${uid}`).get();
+
+  return snap.exists();
+}
+
+/**
+ * Ek message: dead ho to media delete -> node remove.
+ * Return: "removed" | "alive" | "gone" | "retry"
+ */
+async function cleanupOne(chatId, messageId, msg, cutoffs, now) {
+  if (!isDeadMessage(msg, cutoffs, now)) return "alive";
+
+  const urls = collectMediaUrls(msg);
+
+  for (const url of urls) {
+    const parsed = parseCloudinaryUrl(url);
+
+    // Hamara Cloudinary URL nahi (ya parse nahi hua): chhod do, message hatao
+    if (!parsed) continue;
+
+    if (!CLD_ENABLED) return "retry";
+
+    const ok = await destroyCloudinaryAsset(parsed.resourceType, parsed.publicId);
+
+    // Media delete nahi hua: message rakho, baad me dobara try hoga
+    if (!ok) return "retry";
+  }
+
+  await db.ref(`chatRooms/${chatId}/messages/${messageId}`).remove();
+
+  return "removed";
+}
+
+// POST /cleanupMessages { chatId, messageIds: [..] }
+app.post("/cleanupMessages", async (req, res) => {
+  try {
+    const uid = await authenticate(req);
+
+    if (!uid) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (rateLimited(uid)) {
+      return res.status(429).json({ success: false, message: "Too many requests" });
+    }
+
+    const { chatId, messageIds } = req.body || {};
+
+    if (
+      !Array.isArray(messageIds) ||
+      messageIds.length === 0 ||
+      messageIds.length > MAX_CLEANUP_IDS ||
+      !messageIds.every((id) => typeof id === "string" && ID_REGEX.test(id))
+    ) {
+      return res.status(400).json({ success: false, message: "Invalid request" });
+    }
+
+    if (!(await isParticipant(String(chatId), uid))) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    const cutoffs = await loadCutoffs(chatId);
+    const now = Date.now();
+
+    const results = {};
+
+    for (const id of messageIds) {
+      const snap = await db.ref(`chatRooms/${chatId}/messages/${id}`).get();
+
+      if (!snap.exists()) {
+        results[id] = "gone";
+        continue;
+      }
+
+      results[id] = await cleanupOne(chatId, id, snap.val(), cutoffs, now);
+    }
+
+    return res.json({ success: true, results });
+  } catch (e) {
+    console.log("CLEANUP MESSAGES ERROR =>", e && e.message);
+
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// POST /cleanupChat { chatId }
+// Poori chat history sweep (clear chat / delete chat ke baad): jo bhi message
+// dono taraf se delete hai (flags / cutoff / expiry) uska media + node hatao.
+const sweeping = new Set();
+
+app.post("/cleanupChat", async (req, res) => {
+  const uid = await authenticate(req);
+
+  if (!uid) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  if (rateLimited(uid)) {
+    return res.status(429).json({ success: false, message: "Too many requests" });
+  }
+
+  const chatId = String((req.body || {}).chatId || "");
+
+  if (!(await isParticipant(chatId, uid))) {
+    return res.status(403).json({ success: false, message: "Forbidden" });
+  }
+
+  // Ek chat ka ek hi sweep ek time par
+  if (sweeping.has(chatId)) {
+    return res.json({ success: true, running: true });
+  }
+
+  sweeping.add(chatId);
+
+  try {
+    const cutoffs = await loadCutoffs(chatId);
+    const now = Date.now();
+
+    let removed = 0;
+    let retry = 0;
+    let scanned = 0;
+    let lastKey = null;
+
+    while (scanned < SWEEP_MAX) {
+      let q = db
+        .ref(`chatRooms/${chatId}/messages`)
+        .orderByKey()
+        .limitToFirst(SWEEP_PAGE + (lastKey ? 1 : 0));
+
+      if (lastKey) q = q.startAt(lastKey);
+
+      const snap = await q.get();
+
+      if (!snap.exists()) break;
+
+      const entries = [];
+
+      snap.forEach((child) => {
+        if (child.key !== lastKey) entries.push([child.key, child.val()]);
+      });
+
+      if (entries.length === 0) break;
+
+      for (const [id, msg] of entries) {
+        scanned += 1;
+
+        const r = await cleanupOne(chatId, id, msg, cutoffs, now);
+
+        if (r === "removed") removed += 1;
+        if (r === "retry") retry += 1;
+      }
+
+      lastKey = entries[entries.length - 1][0];
+
+      if (entries.length < SWEEP_PAGE) break;
+    }
+
+    return res.json({ success: true, scanned, removed, retry });
+  } catch (e) {
+    console.log("CLEANUP CHAT ERROR =>", e && e.message);
+
+    return res.status(500).json({ success: false, message: "Server error" });
+  } finally {
+    sweeping.delete(chatId);
   }
 });
 
