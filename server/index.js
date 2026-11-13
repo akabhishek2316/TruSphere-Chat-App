@@ -124,6 +124,9 @@ function buildBody(message) {
     case "voice":
       return "🎤 Voice Message";
 
+    case "video":
+      return "🎥 Video";
+
     case "call":
       return message.callType === "video"
         ? "📹 Missed video call"
@@ -214,7 +217,9 @@ app.post("/notifyMessage", async (req, res) => {
 
     // Image / voice ka push upload poora hone ke baad hi
     if (
-      (message.type === "image" || message.type === "voice") &&
+      (message.type === "image" ||
+        message.type === "voice" ||
+        message.type === "video") &&
       message.uploadCompleted !== true
     ) {
       return skip("upload-pending");
@@ -222,10 +227,17 @@ app.post("/notifyMessage", async (req, res) => {
 
     const receiverId = message.receiver;
 
-    const [blockSnap, presenceSnap, tokenSnap, nameSnap, muteSnap] =
-      await Promise.all([
+    const [
+      blockSnap,
+      presenceSnap,
+      activeChatSnap,
+      tokenSnap,
+      nameSnap,
+      muteSnap,
+    ] = await Promise.all([
         db.ref(`blocks/${receiverId}/${uid}`).get(),
         db.ref(`presence/${receiverId}`).get(),
+        db.ref(`activeChat/${receiverId}`).get(),
         db.ref(`userPrivate/${receiverId}/fcmToken`).get(),
         db.ref(`users/${uid}/name`).get(),
         db.ref(`mutedChats/${receiverId}/${chatId}`).get(),
@@ -242,7 +254,7 @@ app.post("/notifyMessage", async (req, res) => {
 
     const presence = presenceSnap.val() || {};
 
-    if (presence.online === true && presence.currentChat === chatId) {
+    if (presence.online === true && activeChatSnap.val() === chatId) {
       return skip("receiver-in-chat");
     }
 
@@ -296,6 +308,14 @@ app.post("/notifyMessage", async (req, res) => {
         },
       });
     } catch (e) {
+      // Push gaya hi nahi => claim wapas lo, warna client ka retry
+      // "duplicate" maan kar skip ho jata aur notification hamesha ke liye
+      // kho jati thi
+      await messageRef
+        .child("pushed")
+        .remove()
+        .catch(() => {});
+
       // Token expire / uninstall: DB se hata do taaki dobara try na ho
       if (
         e &&
@@ -569,10 +589,14 @@ async function destroyCloudinaryAsset(resourceType, publicId) {
 
 /** Message ke saare Cloudinary media (image, voice, aur delete-for-everyone ka trash) */
 function collectMediaUrls(m) {
-  const urls = [m.image, m.voiceUrl, m.thumbnail];
+  const urls = [m.image, m.voiceUrl, m.videoUrl, m.thumbnail];
 
   if (m.trashMedia && typeof m.trashMedia === "object") {
-    urls.push(m.trashMedia.image, m.trashMedia.voiceUrl);
+    urls.push(
+      m.trashMedia.image,
+      m.trashMedia.voiceUrl,
+      m.trashMedia.videoUrl
+    );
   }
 
   return [...new Set(urls.filter((u) => typeof u === "string" && u))];
