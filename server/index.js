@@ -59,15 +59,7 @@ const db = admin.database();
 const app = express();
 
 app.disable("x-powered-by");
-// rawBody: Cloudinary webhook ka signature raw body par bana hota hai
-app.use(
-  express.json({
-    limit: "16kb",
-    verify: (req, res, buf) => {
-      req.rawBody = buf;
-    },
-  })
-);
+app.use(express.json({ limit: "8kb" }));
 
 // -----------------------------------------------------
 // Simple in-memory rate limit (per user): 60 requests / minute
@@ -685,18 +677,6 @@ async function cleanupOne(chatId, messageId, msg, cutoffs, now) {
 
     if (!CLD_ENABLED) return "retry";
 
-    // Ye media kisi aur message ki hai (kisi ne doosre ka URL apne message me
-    // laga diya) => asset mat todo, sirf is message ko hata do
-    try {
-      const idx = await db
-        .ref(`mediaIndex/${mediaKey(parsed.publicId)}`)
-        .get();
-
-      if (idx.exists() && idx.val().messageId !== messageId) continue;
-    } catch (e) {
-      return "retry";
-    }
-
     const ok = await destroyCloudinaryAsset(parsed.resourceType, parsed.publicId);
 
     // Media delete nahi hua: message rakho, baad me dobara try hoga
@@ -705,178 +685,8 @@ async function cleanupOne(chatId, messageId, msg, cutoffs, now) {
 
   await db.ref(`chatRooms/${chatId}/messages/${messageId}`).remove();
 
-  // Is message ki mediaIndex entries bhi hatao (index badhta na rahe)
-  for (const url of urls) {
-    const parsed = parseCloudinaryUrl(url);
-
-    if (!parsed) continue;
-
-    const ref = db.ref(`mediaIndex/${mediaKey(parsed.publicId)}`);
-
-    try {
-      const idx = await ref.get();
-
-      if (idx.exists() && idx.val().messageId === messageId) await ref.remove();
-    } catch (e) {}
-  }
-
   return "removed";
 }
-
-// POST /moderationWebhook  (Cloudinary -> server)
-// Cloudinary console: Settings -> Webhooks (Notifications) me is URL ko
-// "Moderation" notification ke liye daalo. Upload preset me moderation add-on
-// (aws_rek / aws_rek_video / webpurify) lagana zaroori hai.
-// Rejected media ka message "deleted" bana diya jata hai (dono taraf).
-// Env: CLOUDINARY_API_SECRET (signature check ke liye).
-function mediaKey(publicId) {
-  return String(publicId || "").replace(/[.#$\[\]/]/g, "_");
-}
-
-app.post("/moderationWebhook", async (req, res) => {
-  try {
-    const secret = process.env.CLOUDINARY_API_SECRET;
-
-    if (!secret) {
-      return res.status(503).json({ success: false, message: "Not configured" });
-    }
-
-    const ts = String(req.get("X-Cld-Timestamp") || "");
-    const sig = String(req.get("X-Cld-Signature") || "");
-
-    if (!ts || !sig || !req.rawBody) {
-      return res.status(401).json({ success: false });
-    }
-
-    // Purani (replay) request na chale
-    if (Math.abs(Date.now() / 1000 - Number(ts)) > 2 * 60 * 60) {
-      return res.status(401).json({ success: false });
-    }
-
-    const expected = crypto
-      .createHash("sha1")
-      .update(req.rawBody.toString("utf8") + ts + secret)
-      .digest("hex");
-
-    const a = Buffer.from(expected);
-    const b = Buffer.from(sig);
-
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-      return res.status(401).json({ success: false });
-    }
-
-    const body = req.body || {};
-
-    if (
-      body.notification_type !== "moderation" ||
-      body.moderation_status !== "rejected"
-    ) {
-      return res.json({ success: true, ignored: true });
-    }
-
-    const key = mediaKey(body.public_id);
-    const snap = await db.ref(`mediaIndex/${key}`).get();
-
-    // Index abhi nahi likha (media abhi message me lagi hi nahi) => 404:
-    // non-2xx se Cloudinary baad me dobara bhej sakta hai (2xx = delivered maana jata)
-    if (!snap.exists()) {
-      return res.status(404).json({ success: false, found: false });
-    }
-
-    const { chatId, messageId, uid: indexUid } = snap.val();
-
-    if (
-      !ID_REGEX.test(String(messageId)) ||
-      !ID_REGEX.test(String(chatId)) ||
-      !indexUid
-    ) {
-      return res.json({ success: true, ignored: true });
-    }
-
-    // mediaIndex client likhta hai => bharosa nahi: message sach me usi user ka
-    // hona chahiye jisne index likha. Warna koi apni (rejected) media ke naam par
-    // kisi aur ka message delete karwa sakta tha.
-    const msgSnap = await db
-      .ref(`chatRooms/${chatId}/messages/${messageId}`)
-      .get();
-
-    if (!msgSnap.exists() || msgSnap.val().sender !== indexUid) {
-      return res.json({ success: true, ignored: true });
-    }
-
-    const base = `chatRooms/${chatId}/messages/${messageId}`;
-
-    await db.ref().update({
-      [`${base}/text`]: "This media was removed (policy violation)",
-      [`${base}/deleted`]: true,
-      [`${base}/deletedForEveryone`]: true,
-      [`${base}/moderation`]: "rejected",
-      [`${base}/type`]: "deleted",
-      [`${base}/image`]: null,
-      [`${base}/voiceUrl`]: null,
-      [`${base}/videoUrl`]: null,
-      [`${base}/thumbnail`]: null,
-      [`${base}/localUri`]: null,
-      [`${base}/caption`]: null,
-      [`${base}/duration`]: null,
-      [`${base}/reactions`]: null,
-      [`${base}/replyTo`]: null,
-      [`moderationLog/${key}`]: {
-        chatId,
-        messageId,
-        uid: snap.val().uid || null,
-        at: Date.now(),
-      },
-    });
-
-    return res.json({ success: true, removed: true });
-  } catch (e) {
-    console.log("MODERATION WEBHOOK ERROR =>", e && e.message);
-
-    return res.status(500).json({ success: false });
-  }
-});
-
-// POST /uploadSignature  (login zaroori)
-// Signed Cloudinary upload: sirf TruSphere ka logged-in user hi upload kar sakta
-// hai (bahari koi nahi: unsigned preset khula rehta hai, ye nahi).
-// Env: CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET, CLOUDINARY_UPLOAD_PRESET
-// (Cloudinary me "Signed" mode wala preset).
-app.post("/uploadSignature", async (req, res) => {
-  try {
-    const uid = await authenticate(req);
-
-    if (!uid) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
-
-    if (rateLimited(uid)) {
-      return res.status(429).json({ success: false, message: "Too many requests" });
-    }
-
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const secret = process.env.CLOUDINARY_API_SECRET;
-    const preset = process.env.CLOUDINARY_UPLOAD_PRESET;
-
-    if (!apiKey || !secret || !preset) {
-      return res.status(503).json({ success: false, message: "Not configured" });
-    }
-
-    const timestamp = Math.floor(Date.now() / 1000);
-
-    // Cloudinary: params alphabetical, "k=v&k=v" + api_secret ka SHA-1
-    const signature = crypto
-      .createHash("sha1")
-      .update(`timestamp=${timestamp}&upload_preset=${preset}${secret}`)
-      .digest("hex");
-
-    return res.json({ success: true, apiKey, timestamp, signature, preset });
-  } catch (e) {
-    console.log("UPLOAD SIGNATURE ERROR =>", e && e.message);
-
-    return res.status(500).json({ success: false, message: "Server error" });
-  }
-});
 
 // POST /cleanupMessages { chatId, messageIds: [..] }
 app.post("/cleanupMessages", async (req, res) => {
@@ -935,17 +745,7 @@ app.post("/cleanupMessages", async (req, res) => {
 // dono taraf se delete hai (flags / cutoff / expiry) uska media + node hatao.
 const sweeping = new Set();
 
-// async handler me throw hone par request latakne ki jagah 500 do
-const guard = (fn) => (req, res) =>
-  fn(req, res).catch((e) => {
-    console.log("HANDLER ERROR =>", e && e.message);
-
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, message: "Server error" });
-    }
-  });
-
-app.post("/cleanupChat", guard(async (req, res) => {
+app.post("/cleanupChat", async (req, res) => {
   const uid = await authenticate(req);
 
   if (!uid) {
@@ -1020,7 +820,7 @@ app.post("/cleanupChat", guard(async (req, res) => {
   } finally {
     sweeping.delete(chatId);
   }
-}));
+});
 
 process.on("unhandledRejection", (reason) => {
   console.log("UNHANDLED REJECTION =>", reason);
