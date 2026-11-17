@@ -229,15 +229,11 @@ app.post("/notifyMessage", async (req, res) => {
 
     const [
       blockSnap,
-      presenceSnap,
-      activeChatSnap,
       tokenSnap,
       nameSnap,
       muteSnap,
     ] = await Promise.all([
         db.ref(`blocks/${receiverId}/${uid}`).get(),
-        db.ref(`presence/${receiverId}`).get(),
-        db.ref(`activeChat/${receiverId}`).get(),
         db.ref(`userPrivate/${receiverId}/fcmToken`).get(),
         db.ref(`users/${uid}/name`).get(),
         db.ref(`mutedChats/${receiverId}/${chatId}`).get(),
@@ -252,11 +248,12 @@ app.post("/notifyMessage", async (req, res) => {
       return skip("muted");
     }
 
-    const presence = presenceSnap.val() || {};
-
-    if (presence.online === true && activeChatSnap.val() === chatId) {
-      return skip("receiver-in-chat");
-    }
+    // NOTE: pehle yahan "receiver chat me hai (online + activeChat) => push
+    // mat bhejo" tha. App background me jaate waqt activeChat/online ka
+    // write (network) kabhi pahunchta nahi tha => stale "chat me hai" => uske
+    // baad ke messages ki notification skip ho jati thi (jab tak user kuch
+    // aur na kare). Ab push hamesha jata hai; app foreground me us chat me
+    // ho to client (onMessage + activeChatId) khud notification dabata hai.
 
     const token = tokenSnap.val();
 
@@ -606,8 +603,8 @@ function collectMediaUrls(m) {
 function isDeadMessage(m, cutoffs, now) {
   if (!m || typeof m !== "object") return false;
 
-  if (m.deletedForEveryone === true) return true;
-
+  // Delete-for-everyone tombstone yahan dead nahi: "This message was deleted"
+  // chat me dikhta rehta hai (sirf uska Cloudinary media cleanupOne me trim hota hai)
   const df = m.deletedFor || {};
 
   if (df[m.sender] === true && df[m.receiver] === true) return true;
@@ -665,7 +662,38 @@ async function isParticipant(chatId, uid) {
  * Return: "removed" | "alive" | "gone" | "retry"
  */
 async function cleanupOne(chatId, messageId, msg, cutoffs, now) {
-  if (!isDeadMessage(msg, cutoffs, now)) return "alive";
+  if (!isDeadMessage(msg, cutoffs, now)) {
+    // Tombstone: message rehne do, bas trash media Cloudinary se hatao
+    if (
+      msg &&
+      msg.deletedForEveryone === true &&
+      msg.trashMedia &&
+      typeof msg.trashMedia === "object"
+    ) {
+      for (const url of collectMediaUrls({ trashMedia: msg.trashMedia })) {
+        const parsed = parseCloudinaryUrl(url);
+
+        if (!parsed) continue;
+
+        if (!CLD_ENABLED) return "retry";
+
+        const ok = await destroyCloudinaryAsset(
+          parsed.resourceType,
+          parsed.publicId
+        );
+
+        if (!ok) return "retry";
+      }
+
+      await db
+        .ref(`chatRooms/${chatId}/messages/${messageId}/trashMedia`)
+        .remove();
+
+      return "trimmed";
+    }
+
+    return "alive";
+  }
 
   const urls = collectMediaUrls(msg);
 
