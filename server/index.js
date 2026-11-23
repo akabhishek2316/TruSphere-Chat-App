@@ -177,10 +177,17 @@ app.post("/notifyMessage", async (req, res) => {
       `chatRooms/${chatId}/messages/${messageId}`
     );
 
-    const [messageSnap, participantsSnap] = await Promise.all([
+    let [messageSnap, participantsSnap] = await Promise.all([
       messageRef.get(),
       db.ref(`chatRooms/${chatId}/participants`).get(),
     ]);
+
+    // App ab push request DB write ke SAATH bhejta hai (jaldi delivery) =>
+    // message abhi server tak na pahuncha ho sakta hai. Thoda ruk kar dobara.
+    for (let i = 0; i < 6 && !messageSnap.exists(); i++) {
+      await new Promise((r) => setTimeout(r, 300));
+      messageSnap = await messageRef.get();
+    }
 
     if (!messageSnap.exists()) {
       return res
